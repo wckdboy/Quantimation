@@ -1,0 +1,68 @@
+[
+  {
+    "text": "What do you call a city with absolutely no problems?",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_1.wav"
+  },
+  {
+    "text": "Give me a minute.",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_2.wav"
+  },
+  {
+    "text": "I told the mayor I had a burning question.",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_3.wav"
+  },
+  {
+    "text": "He said, fire away!",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_4.wav"
+  },
+  {
+    "text": "Why did the castle hire me as a comedian?",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_5.wav"
+  },
+  {
+    "text": "Because I bring the house down!",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.06,
+    "file": "dragon_6.wav"
+  },
+  {
+    "text": "Relax. I have made this mistake in seven dimensions. I am practically an expert.",
+    "voiceId": "bf_emma",
+    "voiceSpeed": 0.94,
+    "file": "family_oona.wav"
+  },
+  {
+    "text": "Does the emergency exit have to be a mouth? It is looking at me.",
+    "voiceId": "am_puck",
+    "voiceSpeed": 1.11,
+    "file": "family_pip.wav"
+  },
+  {
+    "text": "Nobody touches the singularity until they have cleared the dinner table.",
+    "voiceId": "af_nicole",
+    "voiceSpeed": 1.02,
+    "file": "family_mara.wav"
+  },
+  {
+    "text": "Good news! Our policy covers acts of god. Bad news. Your grandmother is excluded.",
+    "voiceId": "bm_george",
+    "voiceSpeed": 0.97,
+    "file": "family_bram.wav"
+  },
+  {
+    "text": "I sold our timeline. The reviews were terrible, but the deposit was nonrefundable.",
+    "voiceId": "af_heart",
+    "voiceSpeed": 1.08,
+    "file": "family_zig.wav"
+  }
+]

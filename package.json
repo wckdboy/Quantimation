@@ -1,0 +1,88 @@
+{
+  "name": "quantimation",
+  "version": "0.2.0",
+  "description": "A prompt-directed, programmable 2D animation studio for desktop.",
+  "author": "Quantimation contributors",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wckdboy/Quantimation.git"
+  },
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "start": "electron .",
+    "test": "node --test tests/*.test.mjs",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "mcp": "node mcp/server.mjs",
+    "demo:voices": "node scripts/render-demo-audio.mjs"
+  },
+  "build": {
+    "appId": "studio.quantimation.desktop",
+    "productName": "Quantimation",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "electron/**/*",
+      "resources/**/*",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY.md",
+      "mcp/**/*",
+      "docs/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.video"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**/*",
+      "node_modules/phonemizer/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "prettier": "3.6.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "kokoro-js": "1.2.1",
+    "mespeak": "2.0.2",
+    "zod": "4.6.7"
+  }
+}

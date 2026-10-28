@@ -1,14 +1,20 @@
 # Quantimation
 
-**A desktop animation studio directed by a language model.**
+**A desktop 2D animation studio directed by a language model.**
 
-Turn a premise into an editable animated episode: screenplay, environments, characters, creatures, props, camera shots, movement, dialogue, and spoken audio. A standard LLM writes structured production data. Quantimation's own 2D vector renderer draws every frame; there is no text-to-video model in the pipeline.
+A prompt becomes a screenplay, newly drawn vector assets, staging, camera shots, motion and spoken dialogue. Quantimation draws each frame with its own programmable renderer. It does not use a text-to-video model.
 
-Built for **macOS, Linux, and Windows** with Electron. The included *The Last Stop* episode works without a model connection, including offline synthesized speech and video export.
+Built with Electron for **Windows, macOS and Linux**. This is a working v0.2 prototype; broadcast animation quality remains a development goal.
 
-## Run locally
+## Included episode
 
-Install [Node.js 24 LTS](https://nodejs.org/) and Git, then:
+**Dragon: A Burning Talent** is a 30-second original cartoon about Sir Scorch, a smug dragon with terrible jokes and catastrophic stage presence. Three scenes with motivated camera cuts cover a cheerful city, a fire-breathing profile, a collapsing clock tower and the smoking aftermath. The character has wobbly outlines, star-dot eyes, expressive eyebrows, wings and layered clothing.
+
+The episode and its six neural dialogue clips are bundled, so the demo plays and exports offline. Open `resources/Dragon - A Burning Talent.quantimation` or choose the demo in the studio. The older _The Last Stop_ example is also included.
+
+## Run
+
+Install Node.js 24 and Git:
 
 ```sh
 git clone https://github.com/wckdboy/Quantimation.git
@@ -17,105 +23,98 @@ npm ci
 npm start
 ```
 
-The installation downloads Electron from its official distribution. On Linux, Electron needs a normal graphical desktop session and its usual system libraries. Built-in speech is bundled; installing a system speech package is optional.
+The installation downloads Electron. A graphical desktop is required. On Linux, set `ONNXRUNTIME_NODE_INSTALL_CUDA=skip` before installation to skip optional GPU libraries: the included neural speech engine uses the CPU. CI already sets this flag.
 
-## Connect a director
+## Direct from an LLM through MCP
 
-Open **Studio settings** using the gear in the lower left.
+Quantimation exposes **21 studio tools** for reading and editing projects, designing assets, directing actor motion and camera shots, playback, generation jobs, undo and audiovisual export. The MCP client's own model can author a complete production without a separate model API connection.
 
-### Local model
+With the app open, register this stdio server in your MCP client:
 
-1. Run [Ollama](https://ollama.com/) and install an instruction-following model of your choice. Larger models generally produce more coherent stories and better vector geometry.
-2. Choose **Ollama**, with `http://localhost:11434` as the base URL.
-3. Select **Save & test connection**, choose an installed model name, and save settings.
+```json
+{
+  "mcpServers": {
+    "quantimation": {
+      "command": "node",
+      "args": ["/absolute/path/to/Quantimation/mcp/server.mjs"]
+    }
+  }
+}
+```
 
-[LM Studio](https://lmstudio.ai/) and other local servers work through **OpenAI-compatible API**, typically at `http://localhost:1234/v1`. Use the server's actual model identifier.
+Use forward slashes for Windows JSON paths. See [MCP setup and tools](docs/MCP.md) and the [production format](docs/PRODUCTION_FORMAT.md). The MCP connection is local and authenticated; it does not expose a remote studio server.
 
-### Cloud model
+## Generate from the app
 
-Choose **OpenAI-compatible API**, enter the provider's HTTPS base URL ending in `/v1` if required, model identifier, and API key. The endpoint must implement `/chat/completions` with JSON object responses. `/models` is used for the connection test. Some providers require adapters or different parameters and are not supported by this first release.
+Open **Studio settings** with the gear in the lower left. Choose an Ollama model at `http://localhost:11434`, or an OpenAI-compatible endpoint and its actual model identifier. Compatible servers must support `/chat/completions` with JSON object responses and `/models` for the connection test. Remote endpoints require HTTPS. Some providers need adapters and are not supported.
 
-API keys stay in the Electron main process. They are encrypted with Electron safeStorage when a secure OS backend is available; otherwise they remain session-only. They are never included in project files or the repository. The configured model receives your prompt, story, and asset descriptions. The app does not run code returned by the model.
+Enter a premise, choose the target length and art direction, then select **Generate episode**. The director plans the story and designs each new asset as a validated shape tree. Speech is rendered and measured; later lines and scene durations adjust to prevent overlapping dialogue. You can revise the result before exporting.
 
-## Make an episode
+The model receives your prompt, story and asset descriptions. API keys stay in the main process and are encrypted with the OS key store when available; otherwise they remain session-only. Projects contain no API keys. No executable model output is evaluated. Provider charges depend on your own account.
 
-1. Describe the story. Include genre, setting, cast, tone, action, and desired visual style. The initial sci-fi cartoon preset is optional; fantasy, graphic novel, minimalist and storybook directions are included.
-2. Choose the target length and art direction, then **Generate episode**.
-3. The director writes a story, dialogue, shots and motion cues. Each asset is designed as a new vector shape tree, validated and assembled into scenes.
-4. Speech is rendered, measured, and placed on the timeline without overlapping lines. Scenes expand if the spoken audio needs more time.
-5. Play the episode and revise the screenplay, camera, staging, assets or keyframes.
-6. **Export episode** produces a 1280×720 WebM with speech and optional captions. Export takes approximately the episode's duration; it is a real-time recording of the custom renderer.
+## Studio controls
 
-The app supports any narrative genre within its 2D drawing vocabulary. It is not limited to a fixed cast, environment, or creature type. Results still depend on the model's ability to compose usable shape data and direction.
-
-## Speech
-
-| Engine | Requirements | Output |
-| --- | --- | --- |
-| Built-in offline | None beyond the app | Basic eSpeak-based synthetic speech; per-character pitch variation |
-| Operating system | Windows SAPI, macOS `say`, or Linux `espeak-ng` | Installed system voice |
-| HTTP speech API | A compatible local or cloud `/audio/speech` endpoint | Neural speech, including compatible Kokoro servers |
-
-For HTTP speech, configure the base URL, model and voice ID. The provider must return WAV audio for `response_format: "wav"`. The API receives dialogue text. Built-in speech runs in a worker thread and is cached locally. Mouth opening follows the rendered audio amplitude, rather than guessing purely from text.
-
-## Editing and projects
-
-- **Scene cards:** select a scene and use *Edit scene* for its camera, environment, direction and duration.
-- **Asset library:** select an asset to change placement, scale, movement and orientation. Assets can be reused across scenes.
-- **Imagine something new:** ask the LLM for another character, creature, prop, environment or effect, or import asset JSON without a model.
-- **Shape & rig editor:** edit vector geometry and animation roles directly.
-- **Motion keyframes:** animate `x`, `y`, `rotation`, `scale`, and `opacity` with eased interpolation.
-- **Screenplay:** edit spoken text, speakers and start times. Voices regenerate on the next playback.
-- **Save project:** creates a portable `.quantimation` JSON file. Speech is regenerated/cached separately. The current project also autosaves locally.
-- **Undo:** keeps the last 35 edits during the current session.
+- **Camera:** cuts, independent shot pans and zooms, Dutch angles, stylized high/low perspectives, and a camera timeline track.
+- **Acting:** motion keyframes, points, shrugs, recoils, laughs, nods, angry/surprised/smug beats, eyebrow movement, blinking and audio-driven mouths.
+- **Views:** front, three-quarter, profile and back projections. For accurate alternate silhouettes, author separate view assets, as the dragon demo does.
+- **Assets:** new characters, creatures, environments, props, clothing layers and effects composed from editable vector primitives and rig groups. Reuse them across scenes.
+- **Editing:** screenplay, shape/rig JSON, shot sequence, staging, voice profiles and undo. **Imagine something new** designs an additional asset with your configured model.
+- **Projects:** portable `.quantimation` JSON, local autosave and 35 session undo steps. Audio is cached separately.
+- **Export:** 1280×720 WebM with mixed speech and optional captions. Export records in real time; keep the app open for the episode's duration.
 
 Shortcuts: **Space** play/pause, **Ctrl/Cmd+S** save, **Ctrl/Cmd+Z** undo.
 
-An example project is in [`resources/The Last Stop.quantimation`](resources/The%20Last%20Stop.quantimation).
+## Voices
+
+| Engine                 | Behavior                                                                                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local neural (default) | Kokoro CPU synthesis with per-character voice ID and speed. First new dialogue downloads roughly 90 MB of model data; subsequent synthesis uses the local cache. |
+| Built-in basic         | Bundled meSpeak/eSpeak speech, requiring no model download. More robotic, with character pitch variation.                                                        |
+| Operating system       | Windows SAPI, macOS `say`, or Linux `espeak-ng`, if available.                                                                                                   |
+| HTTP speech            | A compatible `/audio/speech` endpoint returning WAV. Configure its base URL, model and voice.                                                                    |
+
+The dragon's prerecorded neural clips need no network. New local neural speech downloads public model/voice assets but does not send dialogue to a synthesis service. HTTP speech sends dialogue to the configured provider. There is no voice cloning or exact actor imitation. Mouth drawings follow audio amplitude and approximate text timing; this is not phoneme-aligned lip sync.
+
+## Production review
+
+Open **Review** for technical findings and rendered pose samples before export. The LLM directs named joints in a separate performance pass after designing assets. Export measures frame stalls and remains a review cut. MCP tools `review_production` and `capture_frame` let a directing agent inspect actual frames. Creative quality is never inferred from a passing test or a successful encode. See [QUALITY.md](docs/QUALITY.md).
 
 ## Architecture
 
 ```text
-Premise + art direction
-        ↓
-LLM director → screenplay + scene plan + asset briefs
-        ↓
-LLM asset designer → vector shape trees + rig roles
-        ↓
-Validation → bounded, editable episode JSON
-        ↓
-Speech synthesis → WAV clips → automatic timing adjustment
-        ↓
-Canvas renderer + keyframes + audio-driven mouths
-        ↓
-Web Audio mixer + MediaRecorder → WebM episode
+Prompt → LLM story plan → LLM vector assets → strict production validation
+                                                   ↓
+MCP client → editable project, actors and shots → custom Canvas renderer
+                                                   +
+                          speech synthesis → measured timeline → WebM
 ```
 
-`src/model.js` validates and normalizes all model/imported data. `src/renderer.js` renders the same data for preview, thumbnails and export. `electron/director.mjs` implements the provider adapters, staged asset creation and one repair attempt on invalid output. `electron/speech.mjs` provides bundled, native and HTTP speech. The renderer has no Node access; a narrow, sender-checked IPC bridge handles files, model requests and secrets.
-
-See [the production format](docs/PRODUCTION_FORMAT.md) for the schema and animation conventions.
+`src/model.js` validates production data. `src/renderer.js` shares drawing logic between the stage, thumbnails and export. `electron/director.mjs` handles provider requests and one repair attempt. Neural speech runs in a worker. The sandboxed renderer has no Node access and uses a narrow sender-checked IPC bridge. The stdio MCP server controls a token-protected loopback service.
 
 ## Build and test
 
 ```sh
 npm test
 npm run package       # Unpacked app for the current OS
-npm run dist          # Installer/distribution for the current OS
+npm run dist          # Installer for the current OS
+npm run demo:voices   # Regenerate the demo's neural dialogue
 ```
 
-Build on the target OS. Platform shortcuts are `dist:win`, `dist:mac`, and `dist:linux`. GitHub Actions runs tests and builds Windows NSIS, macOS DMG (Intel and Apple Silicon), and Linux AppImage/DEB artifacts on their respective runners. Download artifacts from a successful Actions run.
+Build on the target OS. GitHub Actions tests and builds Windows NSIS, macOS Intel/Apple Silicon DMG, and Linux AppImage/DEB packages. Download artifacts from a successful Actions run. Signing and notarization certificates are not included. See [VALIDATION.md](VALIDATION.md) for actual checks and remaining verification.
 
-The project does not include signing/notarization certificates. Distribution signing is a separate release step; macOS/Windows may warn about unsigned builds. Do not mistake build configuration for verification on every operating system. Local validation is recorded in [VALIDATION.md](VALIDATION.md), and the actual CI run is authoritative for other platforms.
+## Scope and limits
 
-## Current limits
+The drawing vocabulary supports many story genres and original casts, but it does not promise infinite capacity or television production quality. Automatic generation currently targets 3–8 scenes and up to 12 newly designed assets. Requested duration is approximate. The format accepts up to 100 scenes, 80 assets and two hours; large productions need performance testing and additional authoring.
 
-This is a working **v0.1 prototype**, not a broadcast production system. The default voice is robotic. Animation uses procedural rig roles and interpolated transforms, with amplitude-based mouth movement; there is no phoneme/viseme model, full inverse kinematics, 3D engine, generated music, Foley, or automatic sound effects. HTTP speech currently uses one configured neural voice; built-in voices vary pitch by character. Lip sync is approximate.
-
-Generation targets short episodes (3–8 scenes, up to 12 newly designed assets). Requested duration is approximate and may expand after speech rendering. The editor accepts up to 100 scenes, 80 assets, and two hours total, but extended productions require further authoring and performance testing. Drawings are simple vector assets; they do not guarantee exact reproduction of any commercial show's artwork or production quality.
-
-Model/API usage may have provider costs. No model weights, cloud keys or private user data are shipped. Cancel stops pending model requests; already completed provider requests may still be billable.
+This is procedural 2D animation with rig roles, eased transforms and stylized camera/view projections. There is no full inverse kinematics, true 3D rotation, automatic cloth simulation, phoneme lip sync, music or recorded Foley. Asset quality and story coherence depend on the directing model. Further art direction and animation work are needed for broadcast results.
 
 ## License
 
-GPL-3.0-or-later. The bundled speech dependency `mespeak` (which incorporates eSpeak/speak.js) is GPL-licensed. Dependency source is available through the locked npm package and its [upstream repository](https://github.com/mikolalysenko/mespeak). See [THIRD_PARTY.md](THIRD_PARTY.md) and [LICENSE](LICENSE). Original sample artwork and story are included under the project license.
+GPL-3.0-or-later. Original sample art and stories use the project license. See [LICENSE](LICENSE) and [THIRD_PARTY.md](THIRD_PARTY.md) for dependencies and source links.
+
+## Reusable cast and worlds
+
+The original Quantumania family includes five articulated character rigs with nine mouth drawings, four hand poses, different silhouettes and cached voice auditions. Open Examples to load the cast. Assets → + offers 18 editable standards, including buildings, plants, worlds and environments. Save your modifications as reusable standards. See [Standards and cast](docs/STANDARDS.md).
+
+Exports save removable SRT subtitles alongside the video. Burned-in captions default off. See [Visual review architecture](docs/VISION_REVIEW.md) for the proposed local/cloud inspection workflow; a vision reviewer is not connected yet.
 

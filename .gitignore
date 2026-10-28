@@ -1,0 +1,10 @@
+node_modules/
+release*/
+.test-profile/
+*.log
+.DS_Store
+.env*
+settings.json
+speech-cache/
+.cache/
+mcp-connection.json

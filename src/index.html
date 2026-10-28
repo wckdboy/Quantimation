@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+    />
+    <title>Quantimation</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">o<span>✳</span></span
+        ><span>quantimation<span class="brand-sub">STUDIO</span></span>
+      </div>
+      <div class="project-title">
+        <span class="crumb">Project</span><span class="slash">/</span
+        ><button id="rename" class="text-button" title="Rename episode">
+          <span id="projectName">The Last Stop</span
+          ><span class="chevron">⌄</span></button
+        ><span class="badge">DRAFT</span>
+      </div>
+      <div class="top-actions">
+        <button id="reviewProduction" class="button subtle">Review</button>
+        <button id="openProject" class="button subtle" data-icon="folder">
+          Open</button
+        ><button id="saveProject" class="button" data-icon="save">
+          Save project</button
+        ><button id="export" class="button primary" data-icon="export">
+          Export episode
+        </button>
+      </div>
+    </header>
+    <main class="workspace">
+      <nav class="rail" aria-label="Studio tools">
+        <button
+          id="studioNav"
+          class="rail-button active"
+          title="Episode studio"
+          aria-label="Episode studio"
+          data-icon="clapper"
+        ></button
+        ><button
+          id="assetsNav"
+          class="rail-button"
+          title="Asset library"
+          aria-label="Asset library"
+          data-icon="shapes"
+        ></button
+        ><button
+          id="scriptNav"
+          class="rail-button"
+          title="Screenplay"
+          aria-label="Screenplay"
+          data-icon="script"
+        ></button>
+        <div class="rail-spacer"></div>
+        <button
+          id="help"
+          class="rail-button"
+          title="How it works"
+          aria-label="How it works"
+          data-icon="help"
+        ></button
+        ><button
+          id="settings"
+          class="rail-button"
+          title="Studio settings"
+          aria-label="Studio settings"
+          data-icon="settings"
+        ></button>
+        <div class="avatar">Q</div>
+      </nav>
+      <aside class="director-panel">
+        <div class="panel-title">
+          <span class="eyebrow">THE DIRECTOR’S CHAIR</span
+          ><span class="tiny-star">✧</span>
+        </div>
+        <h1>Create an episode</h1>
+        <p class="intro">Describe the story, cast, and setting.</p>
+        <label for="prompt" class="field-label"
+          >What’s the episode about?</label
+        >
+        <div class="prompt-wrap">
+          <textarea
+            id="prompt"
+            spellcheck="false"
+            maxlength="12000"
+            placeholder="A mystery in an underwater city. A tiny dragon’s first day at school. Anything you can imagine…"
+          >
+A wondrous, mean-spirited dragon tells terrible jokes while burning a colorful fantasy city to the ground. Squiggly outlines, star-dot eyes, derpy acting, big reactions and dynamic camera cuts.</textarea
+          >
+          <div class="prompt-bottom">
+            <span>Episode brief</span><span id="promptCount">143</span>
+          </div>
+        </div>
+        <div class="prompt-options">
+          <label
+            >Target length<select id="length">
+              <option value="30">30 seconds</option>
+              <option value="60" selected>1 minute</option>
+              <option value="180">3 minutes</option>
+              <option value="300">5 minutes</option>
+            </select></label
+          ><label
+            >Art direction<select id="style">
+              <option
+                value="Wicked adult cartoon, Rick and Morty-inspired: squiggly black outlines, acid-bright colors, off-center eyes with tiny star-dot pupils, derpy proportions, a scruffy mean antihero and elastic poses. Original characters."
+              >
+                Wicked cartoon
+              </option>
+              <option
+                value="Warm storybook illustration. Soft pastel palette, delicate outlines, rounded organic silhouettes and whimsical shapes."
+              >
+                Storybook
+              </option>
+              <option
+                value="Noir graphic novel. Strong black shapes, muted blue gray colors, dramatic geometric shadows and limited amber accents."
+              >
+                Graphic novel
+              </option>
+              <option
+                value="Playful minimalist 2D vector animation. Simple geometric characters, clean compositions, bold flat colors and no outlines."
+              >
+                Minimal vector
+              </option>
+              <option
+                value="Dreamlike fantasy animation. Jewel tones, elaborate organic silhouettes, layered magical landscapes and expressive creatures."
+              >
+                Fantasy
+              </option>
+            </select></label
+          >
+        </div>
+        <button
+          id="generate"
+          class="button primary generate"
+          data-icon="sparkles"
+        >
+          Generate episode
+        </button>
+        <button id="connection" class="connection">
+          <span class="status-dot"></span
+          ><span id="modelStatus">Connect your LLM</span><span>↗</span>
+        </button>
+        <div class="divider"></div>
+        <div class="section-heading">
+          <span>YOUR PRODUCTION</span><span class="small-label">01</span>
+        </div>
+        <div class="production-step">
+          <span class="step-icon" data-icon="script"></span>
+          <div>
+            <strong>Story & screenplay</strong
+            ><small id="sceneCount">4 scenes, one strange universe</small>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="production-step">
+          <span class="step-icon" data-icon="shapes"></span>
+          <div>
+            <strong>World & cast</strong
+            ><small id="assetCount">5 original assets</small>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="production-step">
+          <span class="step-icon" data-icon="waveform"></span>
+          <div>
+            <strong>Motion & voices</strong
+            ><small id="audioState">Local neural voices</small>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="director-note">
+          <span>✳</span>
+          <p>
+            Every frame is yours.<br /><small
+              >Editable assets. Real animation.<br />No text-to-video
+              model.</small
+            >
+          </p>
+        </div>
+      </aside>
+      <section class="editor">
+        <div class="editor-heading">
+          <div class="tabs">
+            <button class="tab active" id="previewTab">Preview</button
+            ><button class="tab" id="screenplayTab">Screenplay</button>
+          </div>
+          <div class="editor-controls">
+            <span class="small-label">1280 × 720</span
+            ><span class="dot-separator">·</span
+            ><span class="small-label">30 FPS</span
+            ><button
+              id="undo"
+              class="icon-button"
+              title="Undo edit"
+              aria-label="Undo edit"
+              data-icon="undo"
+            ></button>
+          </div>
+        </div>
+        <div class="stage-area">
+          <div class="stage-topline">
+            <span
+              ><i class="live-dot"></i>
+              <span id="shotLabel">SCENE 01 / WIDE SHOT</span></span
+            ><button
+              id="toggleCamera"
+              class="button subtle small"
+              aria-expanded="false"
+            >
+              Camera
+            </button>
+          </div>
+          <div class="camera-toolbar">
+            <span class="eyebrow">CAMERA</span
+            ><button id="cameraWide">Wide</button
+            ><button id="cameraClose">Close-up</button
+            ><button id="cameraDutch">Dutch angle</button
+            ><button id="cameraHigh">Bird’s eye</button
+            ><button id="cameraTimeline" class="camera-manage">
+              ＋ Shot sequence
+            </button>
+          </div>
+          <div class="stage-wrap">
+            <canvas
+              id="stage"
+              width="1280"
+              height="720"
+              aria-label="Animated scene preview"
+            ></canvas
+            ><span class="demo-tag" id="demoTag">DEMO EPISODE</span>
+          </div>
+          <div class="transport">
+            <button
+              id="restart"
+              class="icon-button"
+              aria-label="Restart"
+              title="Restart"
+              data-icon="restart"
+            ></button
+            ><button
+              id="play"
+              class="play-button"
+              aria-label="Play episode"
+              title="Play / pause"
+              data-icon="play"
+            ></button
+            ><span id="timecode" class="timecode"
+              >00:00 <span>/ 00:48</span></span
+            ><input
+              id="scrubber"
+              type="range"
+              min="0"
+              max="48"
+              step="0.01"
+              value="0"
+              aria-label="Episode playhead"
+            /><button
+              id="mute"
+              class="icon-button"
+              aria-label="Mute audio"
+              title="Mute audio"
+              data-icon="volume"
+            ></button
+            ><button
+              id="captions"
+              class="caption-button active"
+              aria-pressed="true"
+              title="Toggle captions"
+            >
+              CC
+            </button>
+          </div>
+        </div>
+        <div class="storyboard-heading">
+          <div>
+            <h2>Scenes <span id="boardCount">4 scenes</span></h2>
+          </div>
+          <button
+            id="editScene"
+            class="button subtle small"
+            data-icon="sliders"
+          >
+            Edit scene
+          </button>
+        </div>
+        <div id="storyboard" class="storyboard"></div>
+        <div class="timeline-header">
+          <span data-icon="timeline"></span><strong>Timeline</strong
+          ><span class="small-label">SCENES · DIALOGUE · MOTION</span
+          ><button
+            id="renderSpeech"
+            class="button subtle small"
+            data-icon="waveform"
+          >
+            Render voices
+          </button>
+        </div>
+        <div class="timeline">
+          <div class="track-labels">
+            <span>Camera</span><span>Picture</span><span>Dialogue</span
+            ><span>Motion</span>
+          </div>
+          <div class="tracks">
+            <div id="cameraTrack" class="track camera-track"></div>
+            <div id="pictureTrack" class="track picture-track"></div>
+            <div id="dialogueTrack" class="track dialogue-track"></div>
+            <div id="motionTrack" class="track motion-track"></div>
+            <div id="playhead" class="playhead"></div>
+          </div>
+        </div>
+        <footer class="editor-footer">
+          <span
+            ><i class="live-dot"></i>
+            <span id="savedStatus">Saved on this device</span></span
+          ><span>Space to play · Ctrl/Cmd + S to save</span
+          ><span id="durationLabel">00:48 runtime</span>
+        </footer>
+      </section>
+      <aside class="inspector">
+        <div class="inspector-top">
+          <h2>Assets</h2>
+          <button
+            id="newAsset"
+            class="icon-button"
+            aria-label="Create new asset"
+            title="Create new asset"
+            data-icon="plus"
+          ></button>
+        </div>
+        <p class="inspector-intro">Reusable artwork for this episode.</p>
+        <div class="asset-filters">
+          <button class="chip active" data-filter="all">All</button
+          ><button class="chip" data-filter="cast">Cast</button
+          ><button class="chip" data-filter="environment">Sets</button
+          ><button class="chip" data-filter="prop">Props</button>
+        </div>
+        <div id="assetLibrary" class="asset-library"></div>
+        <button id="createAsset" class="new-asset">
+          <span>＋</span> Create asset
+        </button>
+        <div id="selection" class="selection"></div>
+        <div class="inspector-bottom">
+          <span class="tiny-star">✧</span>
+          <p>
+            Nothing is pre-rendered.<br /><small
+              >Every asset can become something else.</small
+            >
+          </p>
+        </div>
+      </aside>
+    </main>
+    <dialog id="modal">
+      <div class="modal-heading">
+        <div>
+          <span class="eyebrow" id="modalEyebrow">QUANTIMATION STUDIO</span>
+          <h2 id="modalTitle"></h2>
+        </div>
+        <button
+          id="closeModal"
+          class="icon-button"
+          aria-label="Close dialog"
+          data-icon="close"
+        ></button>
+      </div>
+      <div id="modalBody"></div>
+    </dialog>
+    <dialog id="progressDialog">
+      <div class="orbit-loader"><span>✳</span></div>
+      <span class="eyebrow">A WORLD IN THE MAKING</span>
+      <h2 id="progressTitle">Writing your episode</h2>
+      <p id="progressDetail">The director is getting to work.</p>
+      <progress id="progressBar" max="100" value="0"></progress
+      ><button id="cancelProgress" class="button subtle">Cancel</button>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
