@@ -9,7 +9,7 @@ import {
   MOTIONS,
 } from "./model.js";
 import { renderFrame, renderAsset, renderOnionSkin } from "./renderer.js";
-import { applyIk, applyLipsync, applyPose, reportMotion } from "./directing.js";
+import { applyIk, applyLipsync, applyPose, inbetweenDrawings, reportMotion, setGesture } from "./directing.js";
 import { auditProduction, summarizeRender } from "./quality.js";
 import { soundBuffer } from "./sound.js";
 import { subtitlesSrt } from "./captions.js";
@@ -1653,6 +1653,26 @@ if (bridge?.onMcpRequest)
         result = mutation(() => {
           applyIk(episode, c);
         });
+      else if (c.action === "set_gesture")
+        result = mutation(() =>
+          setGesture(episode, {
+            sceneId: c.sceneId,
+            instanceId: c.instanceId,
+            at: c.at,
+            pose: c.pose || {},
+          }),
+        );
+      else if (c.action === "inbetween_drawings")
+        result = mutation(() =>
+          inbetweenDrawings(episode, {
+            sceneId: c.sceneId,
+            instanceId: c.instanceId,
+            step: c.step,
+            arc: c.arc,
+          }),
+        );
+      else if (c.action === "check_scale" || c.action === "check_model")
+        result = reportMotion(episode, { sceneId: c.sceneId, instanceId: c.instanceId });
       else if (c.action === "lipsync_line")
         result = mutation(() => {
           if (c.lipsyncFallback)

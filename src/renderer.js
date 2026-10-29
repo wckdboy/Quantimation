@@ -10,6 +10,7 @@ import {
 } from "./line-engine.mjs";
 import { onTwos, shakeOffset, smearVector, smoothstep } from "./timing.js";
 import { jointPositions, onionTimes, TRAIL_JOINTS, worldToCanvas } from "./onion.js";
+import { drawCharacter, groundPlacement, samplePose } from "./drawn.js";
 
 const rad = (n) => (n * Math.PI) / 180;
 const pathCache = new Map();
@@ -505,19 +506,47 @@ export function renderFrame(canvas, episode, time, options = {}) {
       asset.kind === "character" || asset.kind === "creature"
         ? squashStretch(velocityY)
         : { x: 1, y: 1 };
-    ctx.translate(state.x, state.y + bob);
+    let drawnArt = null;
+    let drawX = state.x;
+    let drawY = state.y;
+    let drawScale = state.scale;
+    if (p.drawingKeys?.length && timing.ink !== "legacy") {
+      const pitch = c.perspective === "low" ? 16 : c.perspective === "high" ? -14 : 0;
+      const pose = samplePose(
+        p.drawingKeys.map((key) => ({ ...key, character: p.assetId })),
+        poseTime,
+        { twos: p.timing !== "ones" },
+      );
+      pose.pitch = pitch;
+      if (!options.suppressBlink)
+        pose.blink = Math.max(pose.blink || 0, blinkClosed(timing.liveTime, fnv1a(p.id)));
+      const mouthTrack = (p.tracks || []).find((track) => track.target === "mouth");
+      if (mouthTrack) {
+        const mouthPose = poseAt(mouthTrack, timing.liveTime ?? t);
+        if (mouthPose.variant && mouthPose.variant !== "auto") pose.viseme = mouthPose.variant;
+      }
+      const place = groundPlacement(s, pose, pitch);
+      drawX = place.x;
+      drawY = place.y;
+      drawScale = place.scale;
+      drawnArt = drawCharacter(p.assetId, pose);
+    }
+    ctx.translate(drawX, drawY + bob);
     ctx.rotate(rad(state.rotation + (p.motion === "spin" ? poseTime * 50 : 0)));
-    ctx.scale(state.scale * (p.flip ? -1 : 1) * squash.x, state.scale * squash.y);
+    ctx.scale(drawScale * (p.flip ? -1 : 1) * squash.x, drawScale * squash.y);
     if (asset.kind === "character" || asset.kind === "creature") {
       ctx.save();
-      ctx.scale(1, 1 / Math.max(0.2, state.scale));
+      ctx.scale(1, 1 / Math.max(0.2, drawScale));
       ctx.fillStyle = s.contactShadow || "#898d73";
       ctx.beginPath();
-      ctx.ellipse(0, 4, asset.width * 0.28, 8, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 4, (drawnArt?.width || asset.width) * 0.22, 8, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
-    ctx.translate(-asset.width / 2, -asset.height);
+    const footY = drawnArt?.metrics?.feet?.length
+      ? Math.max(...drawnArt.metrics.feet.map((foot) => foot[1]))
+      : drawnArt?.height || asset.height;
+    ctx.translate(-(drawnArt?.width || asset.width) / 2, -footY);
     if (p.motion === "bounce") {
       const cycle = 1 + Math.sin(poseTime * 6) * 0.025;
       ctx.translate(asset.width / 2, asset.height);
@@ -544,7 +573,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
       poseTime,
       liveTime: timing.liveTime,
       blinkSeed: fnv1a(p.id),
-      k: Math.abs(state.scale) * zoom,
+      k: Math.abs(drawScale) * zoom,
       canvasScale: canvas.width / 1280,
       lightAngle,
       lightVector: [Math.cos(lightRad + Math.PI), -Math.sin(lightRad + Math.PI)],
@@ -565,8 +594,12 @@ export function renderFrame(canvas, episode, time, options = {}) {
         ctx.scale(ghost.scaleX, 1 / Math.sqrt(ghost.scaleX));
         ctx.translate(-asset.width / 2, -asset.height * 0.42);
       }
-      for (const node of asset.shapes)
-        drawShape(ctx, node, poseTime, p.motion, talk, acting);
+      for (const node of drawnArt?.shapes || asset.shapes)
+        drawShape(ctx, node, poseTime, drawnArt ? "still" : p.motion, talk, {
+          ...acting,
+          view: drawnArt ? "front" : acting.view,
+          turnaround: drawnArt ? true : acting.turnaround,
+        });
       if (ghost) ctx.restore();
     };
     if (smear) drawActor(smear);

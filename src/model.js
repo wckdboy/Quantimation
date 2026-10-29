@@ -289,6 +289,40 @@ export function validateEpisode(e) {
       });
       if (new Set(o.tracks.map((k) => k.target)).size !== o.tracks.length)
         fail("Pose tracks must have unique targets.");
+      if (p.timing === "ones" || p.timing === "twos") o.timing = p.timing;
+      if (p.drawingKeys?.length) {
+        const hands = ["relaxed", "grip", "point", "open"];
+        const visemes = ["A", "B", "C", "D", "E", "F", "G", "H", "X"];
+        o.drawingKeys = list(p.drawingKeys, "drawing keys", 400, 1).map((key) => {
+          const drawing = { t: num(key.t ?? 0, "drawing time", 0, duration) };
+          for (const field of [
+            "lean", "weight", "squash", "headTilt", "lShoulder", "lElbow", "rShoulder", "rElbow",
+            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "arc", "pitch", "blink", "plantL", "plantR",
+          ]) {
+            if (key[field] !== undefined) drawing[field] = num(key[field], field, -400, 4000);
+          }
+          if (key.view) {
+            if (!["front", "threeQuarter", "profile", "back"].includes(key.view))
+              fail("Unsupported drawing view.");
+            drawing.view = key.view;
+          }
+          if (key.handL) {
+            if (!hands.includes(key.handL)) fail("Unsupported hand drawing.");
+            drawing.handL = key.handL;
+          }
+          if (key.handR) {
+            if (!hands.includes(key.handR)) fail("Unsupported hand drawing.");
+            drawing.handR = key.handR;
+          }
+          if (key.viseme) {
+            if (!visemes.includes(key.viseme)) fail("Unsupported viseme.");
+            drawing.viseme = key.viseme;
+          }
+          if (key.prop) drawing.prop = str(key.prop, "prop", 40);
+          if (key.character) drawing.character = id(key.character);
+          return drawing;
+        });
+      }
       return o;
     });
     if (new Set(instances.map((p) => p.id)).size !== instances.length)
@@ -335,6 +369,11 @@ export function validateEpisode(e) {
       ...(s.lightAngleDeg !== undefined
         ? { lightAngleDeg: num(s.lightAngleDeg, "light angle", -360, 360) }
         : {}),
+      ...(s.horizon !== undefined
+        ? { horizon: num(s.horizon, "horizon", 0.05, 0.9) }
+        : {}),
+      ...(s.floorY !== undefined ? { floorY: num(s.floorY, "floor", 200, 900) } : {}),
+      ...(s.vanishX !== undefined ? { vanishX: num(s.vanishX, "vanishing point", -500, 2000) } : {}),
       ...(s.contactShadow
         ? { contactShadow: color(s.contactShadow) }
         : {}),

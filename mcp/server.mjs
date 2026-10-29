@@ -384,6 +384,42 @@ function boundCues(cues) {
     { captions: z.boolean().optional() },
     "export_episode",
   );
+  tool(
+    "set_gesture",
+    "Author a drawn key pose for a character. The pose is construction (lean, weight, limb angles, hand drawing, prop grip), not a cut-out transform. Timing stays on twos unless the actor is set to ones.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      at: z.number().min(0).optional(),
+      pose: object.optional(),
+    },
+    "set_gesture",
+  );
+  tool(
+    "inbetween_drawings",
+    "Generate inbetween drawings on twos between gesture keys. Spacing eases in and out, and the root can travel on an arc.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      step: z.number().min(1 / 24).max(1).optional(),
+      arc: z.number().min(-80).max(80).optional(),
+    },
+    "inbetween_drawings",
+  );
+  tool(
+    "check_scale",
+    "Flag characters who float, sink, or are the wrong size for their depth on the floor grid, and whose cast heights disagree.",
+    { sceneId: z.string().optional() },
+    "check_scale",
+    true,
+  );
+  tool(
+    "check_model",
+    "Measure a drawn character against the model sheet: head-to-body ratio and whether each hand is one contour.",
+    { sceneId: z.string().optional(), instanceId: z.string().optional() },
+    "check_model",
+    true,
+  );
   tool("undo", "Undo the most recent project mutation.", {}, "undo");
   server.registerResource(
     "production_format",

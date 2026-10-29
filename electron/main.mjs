@@ -262,6 +262,10 @@ async function dispatch(command) {
       "lipsync_line",
       "onion_skin",
       "motion_report",
+      "set_gesture",
+      "inbetween_drawings",
+      "check_scale",
+      "check_model",
       "render_master",
       "undo",
     ].includes(command.action)

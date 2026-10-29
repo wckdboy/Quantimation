@@ -1,5 +1,6 @@
 import { buildLead } from "./cast.js";
 import { applyLipsync } from "./directing.js";
+import { inbetweenKeys } from "./drawn.js";
 import { buildSet } from "./sets.js";
 import { validateEpisode } from "./model.js";
 
@@ -7,6 +8,10 @@ export const DOT_LINE =
   "The form has a box for a talking kettle. I am leaving it blank.";
 export const TEO_LINE = "It only leaks when it is embarrassed.";
 export const GLOAM_LINE = "Page four. It has always been page four.";
+
+function performance(character, keys) {
+  return inbetweenKeys(keys.map((key) => ({ ...key, character })), { step: 2 / 24, arc: 10 });
+}
 
 export function kitchenEpisode({
   dotCues,
@@ -44,28 +49,31 @@ export function kitchenEpisode({
         environment: "dot_kitchen",
         palette: "kitchen_day",
         lightAngleDeg: 135,
+        horizon: 0.72,
+        floorY: 710,
+        vanishX: 620,
         contactShadow: "#898d73",
         camera: { x: 640, y: 390, zoom: 1.08, zoomEnd: 1.08 },
         shots: [
           {
             at: 0,
-            label: "Wide kitchen",
-            camera: { x: 600, y: 400, zoom: 1.08, zoomEnd: 1.08, panX: 70 },
+            label: "Walk in",
+            camera: { x: 640, y: 430, zoom: 1.05, zoomEnd: 1.05, panX: 40, perspective: "eye" },
+          },
+          {
+            at: 4.2,
+            label: "Low angle",
+            camera: { x: 520, y: 480, zoom: 1.15, zoomEnd: 1.15, perspective: "low" },
           },
           {
             at: teoAt,
-            label: "Teo",
-            camera: { x: 620, y: 340, zoom: 1.2, zoomEnd: 1.2 },
+            label: "Over the shoulder",
+            camera: { x: 700, y: 420, zoom: 1.2, zoomEnd: 1.2, perspective: "eye" },
           },
           {
-            at: gloamAt,
-            label: "Gloam",
-            camera: { x: 860, y: 420, zoom: 1.24, zoomEnd: 1.24 },
-          },
-          {
-            at: Math.min(duration - 1.2, gloamAt + gloamDur + 0.3),
+            at: Math.min(duration - 1.4, gloamAt + 0.2),
             label: "Hold",
-            camera: { x: 660, y: 380, zoom: 1.12, zoomEnd: 1.12 },
+            camera: { x: 640, y: 430, zoom: 1.08, zoomEnd: 1.08, perspective: "eye" },
           },
         ],
         sounds: [],
@@ -73,67 +81,52 @@ export function kitchenEpisode({
           {
             id: "dot",
             assetId: "dot",
-            x: 360,
+            x: 420,
             y: 680,
-            scale: 0.74,
+            scale: 1,
             motion: "still",
             view: "threeQuarter",
-            tracks: [
-              {
-                target: "head",
-                keyframes: [
-                  { t: 0, rotation: 0, easing: "hold" },
-                  { t: 1.5, rotation: 0, easing: "hold" },
-                  { t: 1.67, rotation: 3, easing: "hold" },
-                  { t: 1.92, rotation: -2, easing: "hold" },
-                  { t: 2.17, rotation: 0, easing: "hold" },
-                ],
-              },
-            ],
+            timing: "twos",
+            drawingKeys: performance("dot", [
+              { t: 0, view: "threeQuarter", depth: 0.2, groundX: 280, handL: "grip", prop: "tablet", weight: -0.4, lShoulder: 18, lElbow: 24, rShoulder: -8 },
+              { t: 3.2, view: "threeQuarter", depth: 0.18, groundX: 260, handL: "grip", prop: "tablet", weight: 0.35, lean: -4, lShoulder: 16, lElbow: 20, rShoulder: -6, squash: 0.97 },
+              { t: duration - 0.2, view: "threeQuarter", depth: 0.18, groundX: 270, handL: "grip", prop: "tablet", weight: -0.1 },
+            ]),
+            tracks: [],
           },
           {
             id: "teo",
             assetId: "teo",
-            x: 660,
-            y: 690,
-            scale: 0.7,
+            x: 640,
+            y: 680,
+            scale: 1,
             motion: "still",
             view: "front",
-            tracks: [
-              {
-                target: "right_upper_arm",
-                keyframes: [
-                  { t: 0, rotation: 0, easing: "hold" },
-                  { t: teoAt + 0.4, rotation: 6, easing: "hold" },
-                  { t: teoAt + 0.66, rotation: -28, easing: "hold" },
-                  { t: teoAt + 0.84, rotation: -24, easing: "hold" },
-                ],
-              },
-              {
-                target: "right_forearm",
-                keyframes: [
-                  { t: 0, rotation: 0, easing: "hold" },
-                  { t: teoAt + 0.5, rotation: 0, easing: "hold" },
-                  { t: teoAt + 0.84, rotation: -20, easing: "hold" },
-                ],
-              },
-              {
-                target: "right_hand",
-                keyframes: [
-                  { t: 0, variant: "relaxed", easing: "hold" },
-                  { t: teoAt + 0.84, variant: "point", easing: "hold" },
-                ],
-              },
-            ],
+            timing: "twos",
+            drawingKeys: performance("teo", [
+              { t: 0, view: "threeQuarter", depth: 0.72, groundX: 80, lHip: 26, rHip: -24, lKnee: 18, rKnee: 8, lShoulder: -18, rShoulder: 16, squash: 0.95, arc: 14 },
+              { t: 0.5, view: "threeQuarter", depth: 0.58, groundX: 140, lHip: -8, rHip: 22, lKnee: 6, rKnee: 16, lShoulder: 14, rShoulder: -12, squash: 1.05, arc: 14 },
+              { t: 1.1, view: "threeQuarter", depth: 0.44, groundX: 220, lHip: 24, rHip: -20, lKnee: 16, rKnee: 6, lShoulder: -16, rShoulder: 14, squash: 0.94, arc: 12 },
+              { t: 1.8, view: "front", depth: 0.3, groundX: 430, lHip: 4, rHip: -4, squash: 1, handR: "point", rShoulder: -30, rElbow: -18 },
+              { t: teoAt, view: "front", depth: 0.28, groundX: 470, lHip: -62, rHip: -58, lKnee: 74, rKnee: 70, squash: 0.96, lean: 3, handR: "relaxed" },
+              { t: duration - 0.2, view: "front", depth: 0.28, groundX: 470, lHip: -62, rHip: -58, lKnee: 74, rKnee: 70, squash: 0.96 },
+            ]),
+            tracks: [],
           },
           {
             id: "gloam",
             assetId: "gloam",
-            x: 960,
-            y: 660,
-            scale: 0.72,
+            x: 900,
+            y: 680,
+            scale: 1,
             motion: "still",
             view: "front",
+            timing: "twos",
+            drawingKeys: performance("gloam", [
+              { t: 0, view: "front", depth: 0.22, groundX: 860, lean: 0 },
+              { t: gloamAt, view: "front", depth: 0.16, groundX: 900, lean: 2, headTilt: -3 },
+              { t: duration - 0.2, view: "front", depth: 0.16, groundX: 890, lean: 0 },
+            ]),
             tracks: [],
           },
         ],

@@ -7,6 +7,7 @@ import {
 } from "./lipsync.js";
 import { motionReport } from "./onion.js";
 import { armTracks, mergeTracks, poseTracks, solveArm } from "./rig.js";
+import { inbetweenKeys, modelCheck, normalizePose, physicalityReport, scaleCheck } from "./drawn.js";
 
 function sceneOf(episode, sceneId) {
   const scene = episode.scenes.find((item) => item.id === sceneId);
@@ -108,7 +109,44 @@ export function applyLipsync(episode, { sceneId, lineId, cues }) {
 }
 
 export function reportMotion(episode, options) {
-  return motionReport(episode, options);
+  const report = motionReport(episode, options);
+  const scene = options?.sceneId
+    ? episode.scenes.find((item) => item.id === options.sceneId) || episode.scenes[0]
+    : episode.scenes[0];
+  const drawn = (scene?.instances || []).filter((actor) => actor.drawingKeys?.length);
+  report.physicality = drawn.map((actor) => ({
+    instanceId: actor.id,
+    ...physicalityReport(actor, { twos: actor.timing !== "ones" }),
+  }));
+  report.scale = scaleCheck(scene);
+  report.model = drawn.map((actor) => modelCheck(actor.assetId, actor.drawingKeys[0]));
+  return report;
+}
+
+export function setGesture(episode, { sceneId, instanceId, at = 0, pose = {} }) {
+  const scene = sceneOf(episode, sceneId);
+  const actor = actorOf(scene, instanceId);
+  const key = {
+    ...normalizePose(actor.assetId, pose),
+    t: Math.max(0, Math.min(scene.duration, at)),
+    character: actor.assetId,
+  };
+  const keys = [...(actor.drawingKeys || []).filter((item) => Math.abs(item.t - key.t) > 0.02), key];
+  keys.sort((a, b) => a.t - b.t);
+  actor.drawingKeys = keys;
+  actor.timing = actor.timing || "twos";
+  return { keys: actor.drawingKeys.length, t: key.t };
+}
+
+export function inbetweenDrawings(episode, { sceneId, instanceId, step = 2 / 24, arc = 8 }) {
+  const scene = sceneOf(episode, sceneId);
+  const actor = actorOf(scene, instanceId);
+  if (!actor.drawingKeys?.length) throw new Error("Set gesture keys before inbetweening.");
+  actor.drawingKeys = inbetweenKeys(
+    actor.drawingKeys.map((key) => ({ ...key, character: actor.assetId })),
+    { step, arc },
+  );
+  return { keys: actor.drawingKeys.length, timing: actor.timing || "twos" };
 }
 
 export function rigCatalog() {
