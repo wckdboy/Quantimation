@@ -88,9 +88,9 @@ export function kitchenEpisode({
             view: "threeQuarter",
             timing: "twos",
             drawingKeys: performance("dot", [
-              { t: 0, view: "threeQuarter", depth: 0.2, groundX: 280, handL: "grip", prop: "tablet", weight: -0.4, lShoulder: 18, lElbow: 24, rShoulder: -8 },
-              { t: 3.2, view: "threeQuarter", depth: 0.18, groundX: 260, handL: "grip", prop: "tablet", weight: 0.35, lean: -4, lShoulder: 16, lElbow: 20, rShoulder: -6, squash: 0.97 },
-              { t: duration - 0.2, view: "threeQuarter", depth: 0.18, groundX: 270, handL: "grip", prop: "tablet", weight: -0.1 },
+              { t: 0, view: "threeQuarter", depth: 0.2, groundX: 160, handL: "grip", prop: "tablet", weight: -0.4, lShoulder: 18, lElbow: 24, rShoulder: -8 },
+              { t: 3.2, view: "threeQuarter", depth: 0.18, groundX: 150, handL: "grip", prop: "tablet", weight: 0.35, lean: -4, lShoulder: 16, lElbow: 20, rShoulder: -6, squash: 0.97 },
+              { t: duration - 0.2, view: "threeQuarter", depth: 0.18, groundX: 160, handL: "grip", prop: "tablet", weight: -0.1 },
             ]),
             tracks: [],
           },
@@ -104,12 +104,12 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("teo", [
-              { t: 0, view: "threeQuarter", depth: 0.72, groundX: 80, lHip: 26, rHip: -24, lKnee: 18, rKnee: 8, lShoulder: -18, rShoulder: 16, squash: 0.95, arc: 14 },
-              { t: 0.5, view: "threeQuarter", depth: 0.58, groundX: 140, lHip: -8, rHip: 22, lKnee: 6, rKnee: 16, lShoulder: 14, rShoulder: -12, squash: 1.05, arc: 14 },
-              { t: 1.1, view: "threeQuarter", depth: 0.44, groundX: 220, lHip: 24, rHip: -20, lKnee: 16, rKnee: 6, lShoulder: -16, rShoulder: 14, squash: 0.94, arc: 12 },
-              { t: 1.8, view: "front", depth: 0.3, groundX: 430, lHip: 4, rHip: -4, squash: 1, handR: "point", rShoulder: -30, rElbow: -18 },
-              { t: teoAt, view: "front", depth: 0.28, groundX: 470, lHip: -62, rHip: -58, lKnee: 74, rKnee: 70, squash: 0.96, lean: 3, handR: "relaxed" },
-              { t: duration - 0.2, view: "front", depth: 0.28, groundX: 470, lHip: -62, rHip: -58, lKnee: 74, rKnee: 70, squash: 0.96 },
+              { t: 0, view: "threeQuarter", depth: 0.78, groundX: 620, lHip: 26, rHip: -24, lKnee: 18, rKnee: 8, lShoulder: -18, rShoulder: 16, squash: 0.95, arc: 14 },
+              { t: 0.6, view: "threeQuarter", depth: 0.55, groundX: 620, lHip: -10, rHip: 24, lKnee: 8, rKnee: 18, lShoulder: 16, rShoulder: -14, squash: 1.05, arc: 14 },
+              { t: 1.3, view: "front", depth: 0.36, groundX: 620, lHip: 22, rHip: -18, lKnee: 14, rKnee: 6, lShoulder: -14, rShoulder: 12, squash: 0.94, arc: 10 },
+              { t: 2.2, view: "front", depth: 0.24, groundX: 620, lHip: 3, rHip: -3, squash: 1, handR: "point", rShoulder: -28, rElbow: -16 },
+              { t: teoAt, view: "front", depth: 0.24, groundX: 620, lHip: -64, rHip: -60, lKnee: 78, rKnee: 74, squash: 0.96, lean: 2, handR: "relaxed" },
+              { t: duration - 0.2, view: "front", depth: 0.24, groundX: 620, lHip: -64, rHip: -60, lKnee: 78, rKnee: 74, squash: 0.96 },
             ]),
             tracks: [],
           },
@@ -123,9 +123,9 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("gloam", [
-              { t: 0, view: "front", depth: 0.22, groundX: 860, lean: 0 },
-              { t: gloamAt, view: "front", depth: 0.16, groundX: 900, lean: 2, headTilt: -3 },
-              { t: duration - 0.2, view: "front", depth: 0.16, groundX: 890, lean: 0 },
+              { t: 0, view: "front", depth: 0.2, groundX: 980, lean: 0 },
+              { t: gloamAt, view: "front", depth: 0.18, groundX: 1000, lean: 2, headTilt: -3 },
+              { t: duration - 0.2, view: "front", depth: 0.18, groundX: 990, lean: 0 },
             ]),
             tracks: [],
           },
@@ -153,8 +153,9 @@ export function coilShedEpisode(cues) {
 }
 
 export function characterStill(characterId = "dot", view = "front") {
-  const asset = buildLead(characterId === "pip" ? "dot" : characterId, {
-    id: "still_" + characterId,
+  const leadId = characterId === "pip" ? "dot" : characterId;
+  const asset = buildLead(leadId, {
+    id: leadId,
     primaryView: view,
   });
   return validateEpisode({
@@ -182,6 +183,16 @@ export function characterStill(characterId = "dot", view = "front") {
             scale: 0.92,
             motion: "still",
             view,
+            timing: "twos",
+            drawingKeys: [
+              {
+                t: 0,
+                character: leadId,
+                view,
+                depth: 0.2,
+                groundX: 640,
+              },
+            ],
           },
         ],
         dialogue: [],
