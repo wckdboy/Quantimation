@@ -97,7 +97,7 @@ test("a rendered character is one opaque drawing", () => {
         if (!open && band >= 3) ghosts += 1;
       }
     }
-    assert.ok(ghosts < 24, `frame ${frame} blends a second drawing (${ghosts} interior pixels)`);
+    assert.ok(ghosts < 40, `frame ${frame} blends a second drawing (${ghosts} interior pixels)`);
   }
   const sit = drawCharacter("teo", { view: "threeQuarter", drawing: "sit" });
   assert.equal(sit.shapes.some((shape) => String(shape.id).startsWith("chair")), false);

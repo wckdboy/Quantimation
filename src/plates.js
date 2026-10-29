@@ -200,18 +200,15 @@ function kitchen(cam) {
     worldFace(cam, "fridgeNote", [[240, 150, 9], [286, 150, 9], [286, 112, 9], [240, 112, 9]], "#F7F1DE", "bgDetail"),
     worldFace(cam, "calendar", [[-200, 268, 1], [-130, 268, 1], [-130, 214, 1], [-200, 214, 1]], "#F4EFE2", "bgDetail"),
     worldFace(cam, "calGrid", [[-190, 250, 2], [-140, 250, 2]], "none", "bgDetail", true),
-    drawn(cam, "trash", [[150, 0, 110], [190, 0, 110], [184, 32, 106], [156, 32, 106]], "#8A847C", "prop"),
-    drawn(cam, "trashRim", [[148, 30, 108], [192, 30, 108], [188, 36, 104], [152, 36, 104]], "#6E6A64", "prop"),
-    ...legs(cam, "table", -210, -50, 0, 74, 48, 62, "#C48A52", woodSide),
-    worldFace(cam, "chairLeg0", [[24, 42, 72], [32, 42, 72], [34, 0, 74], [22, 0, 74]], woodSide, "prop"),
-    worldFace(cam, "chairLeg1", [[112, 42, 72], [120, 42, 72], [122, 0, 74], [110, 0, 74]], woodSide, "prop"),
-    worldFace(cam, "chairLeg2", [[28, 42, 48], [36, 42, 48], [38, 0, 46], [26, 0, 46]], woodSide, "prop"),
-    worldFace(cam, "chairLeg3", [[108, 42, 48], [116, 42, 48], [118, 0, 46], [106, 0, 46]], woodSide, "prop"),
-    worldFace(cam, "chairSeat", [[18, 44, 46], [126, 44, 46], [132, 44, 74], [12, 44, 74]], "#C48A52", "prop"),
-    worldFace(cam, "chairBackL", [[26, 44, 48], [36, 44, 48], [36, 150, 48], [26, 150, 48]], "#A56B42", "prop"),
-    worldFace(cam, "chairBackR", [[108, 44, 48], [118, 44, 48], [118, 150, 48], [108, 150, 48]], "#A56B42", "prop"),
-    worldFace(cam, "chairSlat", [[36, 118, 48], [108, 118, 48], [108, 128, 48], [36, 128, 48]], "#C48A52", "prop"),
-    worldFace(cam, "chairSlatLow", [[36, 78, 48], [108, 78, 48], [108, 86, 48], [36, 86, 48]], "#C48A52", "prop"),
+    worldFace(cam, "chairLeg0", [[-54, 42, 74], [-46, 42, 74], [-44, 0, 76], [-56, 0, 76]], woodSide, "prop"),
+    worldFace(cam, "chairLeg1", [[46, 42, 74], [54, 42, 74], [56, 0, 76], [44, 0, 76]], woodSide, "prop"),
+    worldFace(cam, "chairLeg2", [[-50, 42, 50], [-42, 42, 50], [-40, 0, 48], [-52, 0, 48]], woodSide, "prop"),
+    worldFace(cam, "chairLeg3", [[42, 42, 50], [50, 42, 50], [52, 0, 48], [40, 0, 48]], woodSide, "prop"),
+    worldFace(cam, "chairSeat", [[-64, 44, 48], [64, 44, 48], [70, 44, 76], [-70, 44, 76]], "#C48A52", "prop"),
+    worldFace(cam, "chairBackL", [[-52, 44, 48], [-42, 44, 48], [-42, 150, 48], [-52, 150, 48]], "#A56B42", "prop"),
+    worldFace(cam, "chairBackR", [[42, 44, 48], [52, 44, 48], [52, 150, 48], [42, 150, 48]], "#A56B42", "prop"),
+    worldFace(cam, "chairSlat", [[-42, 118, 48], [42, 118, 48], [42, 128, 48], [-42, 128, 48]], "#C48A52", "prop"),
+    worldFace(cam, "chairSlatLow", [[-42, 78, 48], [42, 78, 48], [42, 86, 48], [-42, 86, 48]], "#C48A52", "prop"),
   ];
   return [layer("room", 1, shapes)];
 }
@@ -280,8 +277,8 @@ function market(cam) {
 }
 
 export const KITCHEN_LAYOUT = {
-  table: { x0: -210, x1: -50, top: 74, z0: 48, z1: 62 },
-  chair: { x0: 12, x1: 132, seat: 44, z0: 46, z1: 74 },
+  table: { x0: -900, x1: -880, top: 74, z0: 48, z1: 62 },
+  chair: { x0: -70, x1: 70, seat: 44, z0: 48, z1: 76 },
   fridge: { x0: 220, x1: 320, top: 190, z0: 0, z1: 8 },
   counter: { x0: -270, x1: 200, top: 92, z0: 0, z1: 40 },
 };

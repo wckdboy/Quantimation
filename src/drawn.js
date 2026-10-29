@@ -1016,6 +1016,7 @@ export function stagingCheck(scene, { fps = 24 } = {}) {
         right: place.x + (maxX - origin) * drawScale,
         top: place.y - span * drawScale,
         bottom: place.y,
+        depth: pose.depth || 0,
       };
     });
     const close = /close/i.test(shot.label || "");
@@ -1038,7 +1039,8 @@ export function stagingCheck(scene, { fps = 24 } = {}) {
         const b = boxes[j];
         const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
         const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        if (overlapX > 6 && overlapY > 20) {
+        const depthGap = Math.abs((a.depth || 0) - (b.depth || 0));
+        if (overlapX > 6 && overlapY > 20 && depthGap < 0.05) {
           flags.push({
             code: "overlap",
             instanceId: a.id,

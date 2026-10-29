@@ -315,12 +315,12 @@ export function kitchenProps(cam) {
     ...placeProp(cam, "board", { x: -118, z: 24 }),
     ...placeProp(cam, "kettle", { x: -68, z: 30 }),
     ...placeProp(cam, "bowl", { x: -22, z: 28 }),
-    ...placeProp(cam, "mugB", { x: -90, z: 52, y: 75, fill: "#E7D3A1" }),
+    ...placeProp(cam, "mugB", { x: -248, z: 22, fill: "#E7D3A1" }),
     ...placeProp(cam, "toaster", { x: 152, z: 26 }),
     ...placeProp(cam, "mug", { x: 178, z: 34 }),
     ...placeProp(cam, "jar", { x: 198, z: 20 }),
-    ...placeProp(cam, "plates", { x: -150, z: 54, y: 75 }),
-    ...placeProp(cam, "towel", { x: -190, z: 60, y: 74 }),
+    ...placeProp(cam, "plates", { x: 118, z: 24 }),
+    ...placeProp(cam, "towel", { x: -210, z: 40, y: 92 }),
     ...placeProp(cam, "lamp", { x: 78, z: 34 }),
   ];
 }

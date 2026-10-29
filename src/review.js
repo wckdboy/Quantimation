@@ -94,7 +94,8 @@ function layoutPolys(perspective) {
     [counter.x1, counter.top, counter.z1],
     [counter.x0, counter.top, counter.z1],
   ].map(([x, y, z]) => projectPlate(cam, x, y, z));
-  return { top, seat, feet, ice, deck };
+  const back = [chair.x0 + 16, chair.x1 - 16].map((x) => projectPlate(cam, x, chair.seat, chair.z0)[0]);
+  return { top, seat, feet, ice, deck, back };
 }
 
 function near(rgb, target, tol) {
@@ -142,6 +143,7 @@ function modelFlags(actor, pose, canvas) {
   if (actor.assetId === "teo") {
     const drawing = String(pose.drawing || "stand");
     if (drawing === "stand" || drawing.startsWith("sit")) flags.push(...armBow(art), ...sleeveFlare(art));
+    flags.push(...shoulderRoot(art));
     const beard = art.shapes.find((shape) => shape.role === "beard" || shape.id === "beard");
     const sheet = drawCharacter("teo", { view: pose.view, drawing: "stand" });
     const canon = sheet.shapes.find((shape) => shape.role === "beard" || shape.id === "beard");
@@ -158,6 +160,7 @@ function modelFlags(actor, pose, canvas) {
     const face = head ? pathBox(head.path) : null;
     const jaw = face ? face.y0 + (face.y1 - face.y0) * 0.72 : 0;
     if (!box || !face || box.y1 < jaw) flags.push(`dot-bob ${box ? Math.round(box.y1) : "missing"}`);
+    flags.push(...shoulderRoot(art));
     if (pose.drawing === "gesture") {
       const hand = art.shapes.find((shape) => shape.id === "handB");
       const torso = art.shapes.find((shape) => shape.id === "blazer");
@@ -268,7 +271,17 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
       if (inside(props.deck, foot[0], foot[1])) flags.push(`${actor.id}-on-counter`);
       const seated = String(pose.drawing || "stand").startsWith("sit");
       if (!seated && inside(props.seat, foot[0], foot[1])) flags.push(`${actor.id}-on-chair`);
-      if (seated && actor.assetId === "teo") flags.push(...seatFlags(pose, place, props.seat));
+      if (seated && actor.assetId === "teo") {
+        flags.push(...seatFlags(pose, place, props.seat));
+        const art = drawCharacter("teo", pose);
+        const shirt = art.shapes.find((shape) => shape.id === "shirt");
+        if (shirt) {
+          const hip = pathBox(shirt.path);
+          const drawScale = place.scale * ((MODELS.teo?.world || 380) / Math.max(40, art.metrics.span));
+          const hipX = place.x + ((hip.x0 + hip.x1) / 2 - art.width / 2) * drawScale;
+          flags.push(...chairStraddle(hipX, props.back));
+        }
+      }
       if (foot[1] < rig.horizonY + 20) flags.push(`${actor.id}-above-floor`);
     }
     const table = bounds(props.top);
@@ -278,6 +291,9 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     const feetOut = props.feet.some(([x, y]) => x > view.left && x < view.right && y > view.bottom + 8);
     const someoneSeated = feet.some((foot) => String(foot.drawing).startsWith("sit"));
     if (seatIn && feetOut && !someoneSeated) flags.push("chair-cropped");
+    const envId = shot.camera.perspective === "low" ? "dot_kitchen_low" : "dot_kitchen";
+    const plate = episode.assets.find((asset) => asset.id === envId) || episode.assets.find((asset) => asset.id === "dot_kitchen");
+    flags.push(...underfootFlags(flatShapes(plate?.shapes), feet));
     renderFrame(frame, episode, t, { ink: "broadcast", captions: false, smear: false });
     flags.push(...scanFrame(frame, feet, shot.label === "Wide"));
     if (flags.length) failures.push({ frame: index, t: Math.round(t * 100) / 100, flags });
@@ -297,6 +313,19 @@ function flatShapes(nodes, out = []) {
   return out;
 }
 
+function underfootFlags(shapes, feet) {
+  const flags = [];
+  for (const shape of shapes) {
+    if (!shape.path || !shape.fill || shape.fill === "none" || shape.line !== "prop") continue;
+    const id = shape.id || "";
+    if (id.includes("_") || id.startsWith("chair")) continue;
+    const box = pathBox(shape.path);
+    const near = feet.some((foot) => foot.x > box.x0 - 36 && foot.x < box.x1 + 36 && foot.y > box.y0 - 20 && foot.y < box.y1 + 90);
+    if (near) flags.push(`blob-under ${id}`);
+  }
+  return flags;
+}
+
 function seatFlags(pose, place, seat) {
   const art = drawCharacter("teo", pose);
   const shirt = art.shapes.find((shape) => shape.id === "shirt");
@@ -308,10 +337,34 @@ function seatFlags(pose, place, seat) {
   const hipY = place.y + (hip.y1 - footY) * drawScale;
   const box = bounds(seat);
   const gap = box.y0 - hipY;
+  const flags = [];
   if (hipX < box.x0 - 24 || hipX > box.x1 + 24 || gap < -20 || gap > 48) {
-    return [`teo-no-seat ${Math.round(hipX)},${Math.round(hipY)} gap${Math.round(gap)}`];
+    flags.push(`teo-no-seat ${Math.round(hipX)},${Math.round(hipY)} gap${Math.round(gap)}`);
   }
+  return flags;
+}
+
+function chairStraddle(hipX, back) {
+  if (!back || back.length < 2) return [];
+  const left = Math.min(...back);
+  const right = Math.max(...back);
+  if (hipX < left - 8 || hipX > right + 8) return [`teo-beside-chair ${Math.round(hipX)}`];
   return [];
+}
+
+function shoulderRoot(art) {
+  const torso = art.shapes.find((shape) => shape.id === "shirt" || shape.id === "blazer");
+  if (!torso) return [];
+  const box = pathBox(torso.path);
+  const span = box.y1 - box.y0;
+  const flags = [];
+  for (const shape of art.shapes) {
+    if (!/^(sleeve|arm)/.test(shape.id || "")) continue;
+    if (shape.line === "interior") continue;
+    const sleeve = pathBox(shape.path);
+    if (sleeve.y0 > box.y0 + span * 0.34) flags.push(`${shape.id}-root ${Math.round(sleeve.y0 - box.y0)}`);
+  }
+  return flags;
 }
 
 function armBow(art) {
