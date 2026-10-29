@@ -30,28 +30,41 @@ const Y = {
   sole: yH(4.25),
 };
 
-function sideHand(id, x, y, pose) {
+function sideHand(id, x, y, pose, flip = false) {
+  // Palm mass, thumb on the body side, and three fingers cut deep enough to read.
+  const sign = flip ? -1 : 1;
+  const px = (dx, dy) => [x + sign * dx, y + dy];
   const relaxed = [
-    [x + 2, y], [x - 12, y + 8], [x - 18, y + 24], [x - 12, y + 36],
-    [x - 2, y + 26], [x - 4, y + 44], [x + 8, y + 46], [x + 8, y + 28],
-    [x + 16, y + 42], [x + 26, y + 36], [x + 18, y + 16], [x + 8, y + 2],
+    px(8, 0), px(-4, 10), px(-16, 26), px(-34, 36), px(-40, 52), px(-22, 48), px(-12, 32),
+    px(-20, 58), px(-28, 96), px(-12, 100), px(-4, 62),
+    px(2, 58), px(-2, 100), px(14, 104), px(16, 60),
+    px(22, 56), px(20, 96), px(36, 90), px(34, 48),
+    px(28, 22), px(14, 4),
   ];
   const grip = [
-    [x, y + 2], [x - 14, y + 12], [x - 16, y + 28], [x - 4, y + 22],
-    [x - 2, y + 36], [x + 10, y + 32], [x + 12, y + 18],
-    [x + 18, y + 28], [x + 26, y + 18], [x + 16, y + 6], [x + 4, y],
+    px(8, 0), px(-6, 14), px(-20, 24), px(-42, 32), px(-48, 52), px(-24, 44), px(-12, 28),
+    px(-22, 40), px(-30, 86), px(-10, 90), px(0, 42),
+    px(4, 38), px(2, 88), px(18, 84), px(18, 36),
+    px(24, 32), px(36, 48), px(28, 16), px(10, 2),
   ];
   const open = [
-    [x, y], [x - 18, y + 6], [x - 28, y + 22], [x - 14, y + 18],
-    [x - 18, y + 40], [x - 4, y + 44], [x + 2, y + 20],
-    [x + 8, y + 42], [x + 20, y + 36], [x + 14, y + 14], [x + 22, y + 8],
+    px(4, 0), px(-12, 12), px(-28, 24), px(-46, 30), px(-50, 48), px(-28, 44), px(-14, 28),
+    px(-30, 52), px(-36, 100), px(-18, 106), px(-8, 54),
+    px(0, 50), px(-4, 108), px(14, 112), px(16, 52),
+    px(22, 48), px(18, 104), px(36, 96), px(34, 40),
+    px(30, 18), px(12, 4),
   ];
   const poses = { grip, open, relaxed };
-  const seam = pose === "grip"
-    ? [[x - 2, y + 14], [x + 4, y + 30]]
-    : [[x, y + 24], [x + 4, y + 42], [x + 12, y + 24], [x + 16, y + 40]];
+  const seam = (pose === "grip"
+    ? [px(-14, 34), px(-6, 62), px(8, 32), px(14, 58)]
+    : [px(-16, 52), px(-14, 92), px(6, 50), px(8, 96), px(24, 48), px(26, 88)]
+  );
+  const thumb = pose === "open"
+    ? [px(-26, 26), px(-46, 36), px(-24, 48)]
+    : [px(-14, 24), px(-36, 40), px(-14, 50)];
   return [
     ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" }),
+    ring(`${id}Thumb`, thumb, "none", "interior", { open: true }),
     ring(`${id}Fingers`, seam, "none", "interior", { open: true }),
   ];
 }
@@ -136,7 +149,7 @@ function frontBody() {
       [CX - 18, Y.chin - 4], [CX + 18, Y.chin - 4], [CX + 22, s + 6], [CX - 22, s + 6],
     ], SKIN),
     ...tablet("pad", CX - 156, s + 86, 58, 84),
-    ...sideHand("handL", CX - 118, s + 112, "grip"),
+    ...sideHand("handL", CX - 118, s + 112, "grip", true),
     ...sideHand("handR", CX + 64, s + 142, "relaxed"),
   ];
 }
@@ -176,7 +189,7 @@ function quarterPose(name, mode) {
       ? [[c - 48, s + 8], [c - 90, s - 6], [c - 128, s + 8], [c - 150, s + 28], [c - 132, s + 46], [c - 96, s + 30], [c - 52, s + 28]]
       : [[c - 44, s + 8], [c - 56, s + 30], [c - 62, s + 66], [c - 50, s + 80], [c - 42, s + 136], [c - 32, s + 132], [c - 38, s + 68], [c - 34, s + 16]], BLAZER),
     ring("elbowB", [[c - 70, s + 58], [c - 58, s + 72], [c - 68, s + 84]], "none", "interior", { open: true }),
-    ...sideHand("handB", gesture ? c - 168 : c - 80, gesture ? s + 28 : s + 132, gesture ? "open" : "relaxed"),
+    ...sideHand("handB", gesture ? c - 168 : c - 80, gesture ? s + 28 : s + 132, gesture ? "open" : "relaxed", true),
     ...tablet("pad", c + 28, s + 108, 46, 64),
     ...sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [
@@ -265,7 +278,7 @@ function backStand() {
       [c - 86, s + 6], [c, s - 18], [c + 86, s + 6], [c + 70, Y.waist + 10], [c - 70, Y.waist + 12],
     ], BLAZER, "contour", { shadow: true }),
     ring("seam", [[c, s - 10], [c, Y.waist + 4]], "none", "interior", { open: true }),
-    ...sideHand("handL", c - 100, s + 140, "relaxed"),
+    ...sideHand("handL", c - 100, s + 140, "relaxed", true),
     ...sideHand("handR", c + 70, s + 140, "relaxed"),
     ring("bob", [
       [c - 78, t + 36], [c - 70, t + 8], [c - 28, t - 2], [c, t - 10], [c + 28, t - 2], [c + 70, t + 8],

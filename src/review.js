@@ -286,6 +286,8 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
       if (seated && actor.assetId === "teo") {
         flags.push(...seatFlags(pose, place, props.seat));
         const art = drawCharacter("teo", pose);
+        flags.push(...sitReadFlags(art));
+        flags.push(...chairScaleFlags(art, place, props.seat));
         const shirt = art.shapes.find((shape) => shape.id === "shirt");
         if (shirt) {
           const hip = pathBox(shirt.path);
@@ -304,6 +306,7 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     const someoneSeated = feet.some((foot) => String(foot.drawing).startsWith("sit"));
     if (seatIn && feetOut && !someoneSeated) flags.push("chair-cropped");
     flags.push(...horizonScaleFlags(scales));
+    flags.push(...upstageFlags(feet, scales));
     const envId = shot.camera.perspective === "low" ? "dot_kitchen_low" : "dot_kitchen";
     const plate = episode.assets.find((asset) => asset.id === envId) || episode.assets.find((asset) => asset.id === "dot_kitchen");
     flags.push(...underfootFlags(flatShapes(plate?.shapes), feet));
@@ -389,6 +392,54 @@ function horizonScaleFlags(samples) {
       flags.push(`scale-${sample.id} ${Math.round(sample.height)} vs ${Math.round(expected)}`);
     }
   }
+  return flags;
+}
+
+function sitReadFlags(art) {
+  const flags = [];
+  for (const side of ["L", "R"]) {
+    const thigh = pathBox(art.shapes.find((shape) => shape.id === `thigh${side}`)?.path);
+    const shin = pathBox(art.shapes.find((shape) => shape.id === `shin${side}`)?.path);
+    const boot = pathBox(art.shapes.find((shape) => shape.id === `boot${side}`)?.path);
+    if (!thigh || !shin || !boot) {
+      flags.push(`teo-sit-parts ${side}`);
+      continue;
+    }
+    const thighH = thigh.y1 - thigh.y0;
+    const shinH = Math.max(1, shin.y1 - shin.y0);
+    if (thighH > shinH * 0.85) flags.push(`teo-thigh-long ${side} ${Math.round(thighH)}`);
+    if (shin.y0 > thigh.y1 + 8) flags.push(`teo-knee-gap ${side}`);
+    const hand = art.shapes.find((shape) => shape.id === `hand${side}`);
+    if (hand) {
+      const box = pathBox(hand.path);
+      if (box.y0 > boot.y0 - 8) flags.push(`teo-hand-shoe ${side}`);
+    }
+  }
+  return flags;
+}
+
+function chairScaleFlags(art, place, seat) {
+  const chairW = Math.abs(seat[1][0] - seat[0][0]);
+  const centers = ["thighL", "thighR"].map((id) => {
+    const box = pathBox(art.shapes.find((shape) => shape.id === id)?.path);
+    if (!box) return null;
+    return toScreen(art, place, (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2)[0];
+  });
+  if (centers.some((value) => value == null)) return [];
+  const hip = Math.abs(centers[0] - centers[1]);
+  if (hip > 8 && chairW / hip > 1.45) return [`chair-wide ${Math.round(chairW)}/${Math.round(hip)}`];
+  return [];
+}
+
+function upstageFlags(feet, scales) {
+  const gloam = feet.find((foot) => foot.id === "gloam");
+  const dot = feet.find((foot) => foot.id === "dot");
+  if (!gloam || !dot) return [];
+  const flags = [];
+  if (gloam.y > dot.y - 12) flags.push(`gloam-downstage ${Math.round(gloam.y)} vs ${Math.round(dot.y)}`);
+  const gs = scales.find((sample) => sample.id === "gloam");
+  const ds = scales.find((sample) => sample.id === "dot");
+  if (gs && ds && gs.height > ds.height * 0.75) flags.push(`gloam-large ${Math.round(gs.height)} vs ${Math.round(ds.height)}`);
   return flags;
 }
 
