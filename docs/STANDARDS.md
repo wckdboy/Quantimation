@@ -2,7 +2,7 @@
 
 Open **Assets → +** to choose a template, change its colors and add it to the project. Pick the asset to edit its shapes and rig. **Save as reusable standard** keeps a validated copy in this device's library. Saving a project includes all assets used in it; the personal standards library itself is local to the app profile.
 
-There are 18 built-in standards: five original Quark family members, a creature performance rig, a human rig, crooked building, tree, alien plant, moon, ringed planet, rock, crate, portal, street, forest and deep space. They are editable vector trees, not flattened pictures. Space has a deterministic layout seed; forest has a density control. The palette uses hex colors. Existing productions remain unchanged when a new template is instantiated.
+Built-in standards include Dot Lind, Teo Lind and Gloam, a creature performance rig, a human rig based on Dot, buildings, plants, worlds, the Coil Shed, Silt Market, Dot's kitchen, and a reality seam (the old swirl portal is gone). The Quark family generator remains in `src/family.js` for older tests and is not offered in the catalog. They are editable vector trees, not flattened pictures. Space has a deterministic layout seed; forest has a density control. The palette uses hex colors. Existing productions remain unchanged when a new template is instantiated.
 
 The app's director receives the standard catalog and can request an appropriate base. The design pass then edits that existing tree while preserving useful joints and drawings. Saved custom standards are also offered when generating from the app. A model can still invent new geometry when a template does not fit.
 

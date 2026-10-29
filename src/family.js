@@ -1,5 +1,19 @@
 import { validateAsset, validateEpisode } from "./model.js";
 
+// Rest pivots shared by the IK solver and the drawn limbs. Local asset space.
+export const FAMILY_LIMBS = {
+  left: {
+    shoulder: { x: 114, y: 290 },
+    elbow: { x: 82, y: 406 },
+    wrist: { x: 76, y: 505 },
+  },
+  right: {
+    shoulder: { x: 234, y: 290 },
+    elbow: { x: 267, y: 406 },
+    wrist: { x: 265, y: 505 },
+  },
+};
+
 // Original Quantumania cast. All coordinates and replacement drawings are editable.
 export const FAMILY = [
   {
@@ -103,7 +117,7 @@ export function familyAsset(characterId, options = {}) {
     path,
     fill,
     stroke: ink,
-    strokeWidth: 3.5,
+    strokeWidth: fill === "transparent" || fill === "none" ? 3.1 : 5.5,
     ...extra,
   });
   const E = (x, y, rx, ry, fill, extra = {}) => ({
@@ -114,7 +128,7 @@ export function familyAsset(characterId, options = {}) {
     ry,
     fill,
     stroke: ink,
-    strokeWidth: 3,
+    strokeWidth: 4.2,
     ...extra,
   });
   const G = (id, pivotX, pivotY, children, extra = {}) => ({
@@ -126,12 +140,12 @@ export function familyAsset(characterId, options = {}) {
     ...extra,
   });
   const L = (path, extra = {}) =>
-    P(path, "transparent", { strokeWidth: 2, ...extra });
+    P(path, "transparent", { strokeWidth: 2.7, ...extra });
   const pupil = (x, y) =>
     P(
-      `M${x - 4} ${y} L${x - 1} ${y - 1} L${x} ${y - 5} L${x + 1} ${y - 1} L${x + 5} ${y} L${x + 1} ${y + 1} L${x} ${y + 4} L${x - 1} ${y + 1} Z`,
+      `M${x - 2.1} ${y} L${x - 0.55} ${y - 0.55} L${x} ${y - 3.1} L${x + 0.55} ${y - 0.55} L${x + 2.4} ${y} L${x + 0.55} ${y + 0.55} L${x} ${y + 2.2} L${x - 0.55} ${y + 0.55} Z`,
       ink,
-      { strokeWidth: 1 },
+      { strokeWidth: 0.8 },
     );
   const old = f.id === "oona",
     young = ["pip", "zig"].includes(f.id),
@@ -154,6 +168,9 @@ export function familyAsset(characterId, options = {}) {
           strokeWidth: 1.5,
         }),
         L("M48 32 L46 38"),
+        P("M46 46 Q43 66 36 76 Q47 68 51 48 Z", "#93c4b4", {
+          strokeWidth: 2.1,
+        }),
       ],
       wide: [
         P("M-8 -1 L20 5 L49 1 L90 5 L84 39 Q39 65 3 33 Z", skin),
@@ -168,6 +185,9 @@ export function familyAsset(characterId, options = {}) {
         }),
         L("M43 32 L42 40"),
         L("M-12 0 L-7 -8 M88 2 L95 -3"),
+        P("M48 50 Q44 70 37 82 Q50 72 54 52 Z", "#93c4b4", {
+          strokeWidth: 2.1,
+        }),
       ],
       round: [
         P("M12 8 Q36 -9 61 4 L73 23 L63 43 Q39 56 21 34 Z", skin),
@@ -326,30 +346,40 @@ export function familyAsset(characterId, options = {}) {
       { role: left ? "leftLeg" : "rightLeg" },
     );
   };
-  const eye = (side, x, y, rx, ry) =>
+  const eye = (side, x, y, rx, ry, prefix = "") =>
     G(
-      "eye_" + side,
+      `${prefix}eye_${side}`,
       x,
       y,
       [
-        E(x, y, rx, ry, "#eee6c8"),
-        G("pupil_" + side, x + 2, y + 3, [pupil(x + 2, y + 3)]),
+        E(x, y, rx, ry, "#f4f0e2", { strokeWidth: 4.4 }),
+        E(
+          x - rx * 0.34,
+          y - ry * 0.38,
+          Math.max(2.2, rx * 0.14),
+          Math.max(1.6, ry * 0.1),
+          "#fffdf8",
+          { strokeWidth: 0 },
+        ),
+        G(`${prefix}pupil_${side}`, x + 1, y + 2, [pupil(x + 1, y + 2)], {
+          role: "pupil",
+        }),
         P(
-          `M${x - rx} ${y - 6} Q${x} ${y - ry - 9} ${x + rx} ${y - 5} L${x + rx - 2} ${y + 1} Q${x} ${y - 5} ${x - rx + 1} ${y - 1} Z`,
+          `M${x - rx} ${y - 4} Q${x} ${y - ry - 7} ${x + rx} ${y - 2} L${x + rx - 2} ${y + 3} Q${x} ${y - 3} ${x - rx + 1} ${y + 1} Z`,
           skin,
           {
-            id: "lid_" + side,
+            id: `${prefix}lid_${side}`,
             pivotX: x,
-            pivotY: y - 10,
-            strokeWidth: 2,
-            opacity: f.id === "pip" ? 0.35 : 1,
+            pivotY: y - 8,
+            strokeWidth: 2.5,
+            opacity: f.id === "pip" ? 0.42 : 1,
           },
         ),
       ],
       {
         role: "eye",
-        scaleX: mom ? 0.88 : dad ? 0.9 : 1,
-        scaleY: f.id === "zig" ? 0.88 : 1,
+        scaleX: mom ? 0.9 : dad ? 0.92 : 1,
+        scaleY: f.id === "zig" ? 0.9 : 1,
       },
     );
   const headPath = old
@@ -368,89 +398,80 @@ export function familyAsset(characterId, options = {}) {
         : f.id === "zig"
           ? "M102 198 L86 146 Q74 65 143 55 L207 45 Q266 63 251 126 L232 179 L225 122 L208 89 Q169 131 124 122 L124 202 L114 229 Z"
           : "M100 153 L84 122 L95 97 L78 83 L116 78 L126 51 L149 66 L174 47 L186 66 L218 61 L241 86 L252 115 L236 159 L224 126 L211 105 L192 113 L160 98 L129 120 L120 155 Z";
+  const hairShape = (id) =>
+    P(hairPath, hair, {
+      ...(id ? { id } : {}),
+      pivotX: 174,
+      pivotY: 85,
+      strokeWidth: 5.6,
+      follow: 1.15,
+    });
+  const ears = [
+    P("M111 155 Q89 141 94 177 Q99 195 115 185 Z", skin, {
+      strokeWidth: 4.4,
+    }),
+    L("M106 163 Q98 156 103 179"),
+    P("M234 154 Q251 142 250 169 Q249 185 235 185 Z", skin, {
+      strokeWidth: 4.4,
+    }),
+  ];
+  const faceExtras = [
+    ...(f.id === "zig"
+      ? [
+          P("M211 84 L205 116 L184 137 L159 142 L173 126 L188 91 Z", "#bb8ec7"),
+          E(245, 182, 9, 12, "transparent", {
+            stroke: "#dfba73",
+            strokeWidth: 4,
+          }),
+        ]
+      : []),
+    ...(mom
+      ? [
+          P("M117 103 L149 82 L157 91 L125 113 Z", "#dfb783"),
+          L("M121 103 L150 88"),
+        ]
+      : []),
+  ];
   const head = G(
     "head",
     174,
     252,
     [
-      P(headPath, skin, { strokeWidth: 4 }),
-      P("M111 155 Q89 141 94 177 Q99 195 115 185 Z", skin),
-      L("M106 163 Q98 156 103 179"),
-      P("M234 154 Q251 142 250 169 Q249 185 235 185 Z", skin),
-      P(
-        "M125 212 Q142 242 177 242 L217 230 L212 248 L166 257 L139 245 Z",
-        shade,
-        { strokeWidth: 0 },
-      ),
-      P(hairPath, hair, {
-        id: "hair",
-        pivotX: 174,
-        pivotY: 85,
-        strokeWidth: 4,
-      }),
-      ...(f.id === "zig"
-        ? [
-            P(
-              "M211 84 L205 116 L184 137 L159 142 L173 126 L188 91 Z",
-              "#bb8ec7",
-            ),
-            E(245, 182, 9, 12, "transparent", {
-              stroke: "#dfba73",
-              strokeWidth: 4,
-            }),
-          ]
-        : []),
-      ...(mom
-        ? [
-            P("M117 103 L149 82 L157 91 L125 113 Z", "#dfb783"),
-            L("M121 103 L150 88"),
-          ]
-        : []),
-      eye("left", 145, 158, old ? 22 : 24, old ? 25 : 28),
-      eye("right", 204, 154, dad ? 22 : 24, old ? 23 : 26),
-      P("M119 123 Q144 113 169 125", "transparent", {
-        id: "brow_left",
-        role: "leftBrow",
-        pivotX: 145,
-        pivotY: 123,
-        stroke: old ? hair : ink,
-        strokeWidth: old ? 7 : 4,
-      }),
-      P("M183 120 L203 115 L227 124", "transparent", {
-        id: "brow_right",
-        role: "rightBrow",
-        pivotX: 204,
-        pivotY: 122,
-        stroke: old ? hair : ink,
-        strokeWidth: old ? 7 : 4,
-      }),
-      P(
-        old
-          ? "M177 154 L168 189 L182 201 L199 189 L191 181"
-          : "M177 156 L170 184 Q176 195 190 186 L185 179",
-        skin,
-        { id: "nose", pivotX: 180, pivotY: 170, strokeWidth: 3 },
-      ),
-      G("jaw", 173, 216, [
-        G("mouth", 172, 212, mouth("closed"), {
-          x: 130,
-          y: 207,
-          role: "mouth",
-          scaleX: dad ? 0.8 : mom ? 0.84 : 1,
-          scaleY: old ? 0.83 : 1,
-          variants: [
-            "closed",
-            "open",
-            "wide",
-            "round",
-            "teeth",
-            "smirk",
-            "snarl",
-            "frown",
-            "grin",
-          ].map((name) => ({ name, children: mouth(name) })),
+      G("turn_front", 174, 160, [
+        P(headPath, skin, { strokeWidth: 6.2 }),
+        ...ears,
+        P(
+          "M125 212 Q142 242 177 242 L217 230 L212 248 L166 257 L139 245 Z",
+          shade,
+          { strokeWidth: 0 },
+        ),
+        hairShape("hair"),
+        ...faceExtras,
+        eye("left", 142, 156, old ? 26 : 30, old ? 30 : 36),
+        eye("right", 208, 152, dad ? 26 : 29, old ? 28 : 34),
+        P("M116 118 Q144 104 172 122", "transparent", {
+          id: "brow_left",
+          role: "leftBrow",
+          pivotX: 145,
+          pivotY: 118,
+          stroke: old ? hair : ink,
+          strokeWidth: old ? 7.5 : 4.6,
         }),
-      ]),
+        P("M186 114 L208 108 L232 122", "transparent", {
+          id: "brow_right",
+          role: "rightBrow",
+          pivotX: 208,
+          pivotY: 116,
+          stroke: old ? hair : ink,
+          strokeWidth: old ? 7.5 : 4.6,
+        }),
+        P(
+          old
+            ? "M177 154 L168 189 L182 201 L199 189 L191 181"
+            : "M177 156 L170 184 Q176 195 190 186 L185 179",
+          skin,
+          { id: "nose", pivotX: 180, pivotY: 170, strokeWidth: 3.4 },
+        ),
       G("cheeks", 171, 201, [
         L("M118 194 L124 202 M226 194 L234 201", { stroke: shade }),
         ...(old
@@ -484,9 +505,89 @@ export function familyAsset(characterId, options = {}) {
             E(101, 151, 4, 6, "#70d5c4", { strokeWidth: 1 }),
           ]
         : []),
+      ]),
+      G("turn_three", 174, 160, [
+        P(headPath, skin, { strokeWidth: 6.2 }),
+        P("M234 150 Q258 134 256 172 Q252 196 232 188 Z", skin, {
+          strokeWidth: 4.4,
+        }),
+        P(
+          "M148 214 Q164 240 190 242 L214 228 L208 250 L170 256 L150 236 Z",
+          shade,
+          { strokeWidth: 0 },
+        ),
+        hairShape(null),
+        eye("far", 134, 158, old ? 16 : 18, old ? 20 : 24, "tq_"),
+        eye("near", 214, 150, old ? 28 : 32, old ? 32 : 38, "tq_"),
+        P("M168 112 Q196 100 214 118", "transparent", {
+          id: "tq_brow_near",
+          role: "rightBrow",
+          pivotX: 196,
+          pivotY: 112,
+          stroke: old ? hair : ink,
+          strokeWidth: old ? 7 : 4.6,
+        }),
+        P("M188 148 L236 162 L214 196 L190 178 Z", skin, {
+          id: "tq_nose",
+          pivotX: 206,
+          pivotY: 170,
+          strokeWidth: 3.6,
+        }),
+      ]),
+      G("turn_profile", 174, 160, [
+        P(
+          "M168 250 L150 214 Q142 156 168 112 Q206 68 248 104 Q286 146 270 196 Q258 236 236 252 L196 262 Z",
+          skin,
+          { strokeWidth: 6.2 },
+        ),
+        P("M156 146 Q132 136 138 176 Q148 204 170 188 Z", skin, {
+          strokeWidth: 4.4,
+        }),
+        L("M148 160 Q140 154 146 178"),
+        hairShape(null),
+        eye("near", 214, 150, old ? 26 : 30, old ? 30 : 36, "pf_"),
+        P("M198 118 Q230 104 246 124", "transparent", {
+          id: "pf_brow",
+          role: "leftBrow",
+          pivotX: 224,
+          pivotY: 116,
+          stroke: old ? hair : ink,
+          strokeWidth: old ? 7 : 4.8,
+        }),
+        P("M228 146 L286 170 L240 196 L222 172 Z", skin, {
+          id: "pf_nose",
+          pivotX: 240,
+          pivotY: 170,
+          strokeWidth: 3.8,
+        }),
+        P("M236 214 Q214 236 196 228 L214 252 L248 236 Z", shade, {
+          strokeWidth: 0,
+        }),
+      ]),
+      G("jaw", 173, 216, [
+        G("mouth", 172, 212, mouth("closed"), {
+          x: 130,
+          y: 207,
+          role: "mouth",
+          scaleX: dad ? 0.8 : mom ? 0.84 : 1,
+          scaleY: old ? 0.83 : 1,
+          variants: [
+            "closed",
+            "open",
+            "wide",
+            "round",
+            "teeth",
+            "smirk",
+            "snarl",
+            "frown",
+            "grin",
+          ].map((name) => ({ name, children: mouth(name) })),
+        }),
+      ]),
     ],
     {
       role: "head",
+      turnaround: true,
       scaleX: old ? 0.86 : dad ? 1.12 : mom ? 0.93 : 1,
       scaleY: old ? 1.12 : f.id === "pip" ? 1.04 : 1,
       rotation: f.id === "zig" ? -3 : old ? 3 : 0,
@@ -499,19 +600,19 @@ export function familyAsset(characterId, options = {}) {
         ? "M126 273 L153 255 L200 258 L228 275 L217 351 L243 459 L218 486 L126 480 L110 456 L135 352 Z"
         : "M123 271 L151 259 L202 258 L230 279 L219 350 L237 469 L199 481 L122 470 L114 419 L128 345 Z",
     shirt,
-    { strokeWidth: 4 },
+    { strokeWidth: 6 },
   );
   const wardrobe = old
     ? [
         P(
           "M127 269 L153 258 L168 307 L147 376 L145 527 L105 517 L116 417 L108 330 Z",
           coat,
-          { id: "coat_left", pivotX: 130, pivotY: 284 },
+          { id: "coat_left", pivotX: 130, pivotY: 284, follow: 0.75 },
         ),
         P(
           "M198 260 L228 278 L240 331 L225 404 L249 520 L202 533 L189 373 L180 307 Z",
           coat,
-          { id: "coat_right", pivotX: 213, pivotY: 284 },
+          { id: "coat_right", pivotX: 213, pivotY: 284, follow: 0.85 },
         ),
         P("M136 276 L153 306 L136 329 L153 348 L146 384", coat),
         P("M206 276 L190 308 L210 325 L192 346 L190 373", coat),
@@ -582,7 +683,7 @@ export function familyAsset(characterId, options = {}) {
     id: options.id || "quark_" + f.id,
     name: options.name || f.name,
     kind: "character",
-    description: `${f.role}. Original Quantumania family rig: separate shoulders, elbows, wrists, hips, knees, feet, head, jaw, pupils and lids; nine authored mouth drawings and four hand poses. ${old ? "Lopsided white crest, brass hearing implant, split plum engineer coat." : young ? "Uneven youthful features with deliberately awkward proportions." : "Distinct adult silhouette and expressive tired eyes."}`,
+    description: `${f.role}. Original Quantumania family rig: front, three-quarter and profile head turns, separate shoulders, elbows, wrists, hips, knees and feet, nine mouth drawings and four hand poses. ${old ? "Lopsided white crest, brass hearing implant, split plum engineer coat." : young ? "Uneven youthful features, big eyes and a reluctant slouch." : "Distinct adult silhouette and expressive tired eyes."}`,
     width: 350,
     height: 750,
     voice: { ...f.voice },

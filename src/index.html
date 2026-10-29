@@ -216,6 +216,61 @@ A wondrous, mean-spirited dragon tells terrible jokes while burning a colorful f
               Camera
             </button>
           </div>
+          <div class="onion-toolbar" id="onionBar">
+            <label class="onion-toggle"
+              ><input id="onionEnabled" type="checkbox" /> Onion skin</label
+            >
+            <label
+              >Before
+              <input
+                id="onionBefore"
+                type="range"
+                min="1"
+                max="6"
+                value="2"
+                aria-label="Previous onion frames"
+            /></label>
+            <label
+              >After
+              <input
+                id="onionAfter"
+                type="range"
+                min="1"
+                max="6"
+                value="2"
+                aria-label="Next onion frames"
+            /></label>
+            <label
+              >Previous
+              <input
+                id="onionPrev"
+                type="color"
+                value="#6eb6ff"
+                aria-label="Previous frame tint"
+            /></label>
+            <label
+              >Next
+              <input
+                id="onionNext"
+                type="color"
+                value="#ff9d4a"
+                aria-label="Next frame tint"
+            /></label>
+            <label
+              >Opacity
+              <input
+                id="onionOpacity"
+                type="range"
+                min="0.15"
+                max="0.85"
+                step="0.05"
+                value="0.45"
+                aria-label="Onion opacity"
+            /></label>
+            <label class="onion-toggle"
+              ><input id="onionTrails" type="checkbox" checked /> Trails</label
+            >
+          </div>
           <div class="camera-toolbar">
             <span class="eyebrow">CAMERA</span
             ><button id="cameraWide">Wide</button

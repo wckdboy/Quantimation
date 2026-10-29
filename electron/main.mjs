@@ -256,6 +256,12 @@ async function dispatch(command) {
       "set_shots",
       "playback",
       "export_episode",
+      "apply_pose",
+      "solve_ik",
+      "lipsync_line",
+      "onion_skin",
+      "motion_report",
+      "render_master",
       "undo",
     ].includes(command.action)
   )

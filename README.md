@@ -4,7 +4,7 @@
 
 A prompt becomes a screenplay, newly drawn vector assets, staging, camera shots, motion and spoken dialogue. Quantimation draws each frame with its own programmable renderer. It does not use a text-to-video model.
 
-Built with Electron for **Windows, macOS and Linux**. This is a working v0.2 prototype; broadcast animation quality remains a development goal.
+Built with Electron for **Windows, macOS and Linux**. Version 0.3 follows the production art bible: Dot Lind, Teo Lind and Gloam replace the retired Quark leads. Broadcast line weight, holds and lip sync are in progress; the drawings are still simpler than the model sheets.
 
 ## Included episode
 
@@ -60,7 +60,7 @@ The model receives your prompt, story and asset descriptions. API keys stay in t
 - **Assets:** new characters, creatures, environments, props, clothing layers and effects composed from editable vector primitives and rig groups. Reuse them across scenes.
 - **Editing:** screenplay, shape/rig JSON, shot sequence, staging, voice profiles and undo. **Imagine something new** designs an additional asset with your configured model.
 - **Projects:** portable `.quantimation` JSON, local autosave and 35 session undo steps. Audio is cached separately.
-- **Export:** 1280×720 WebM with mixed speech and optional captions. Export records in real time; keep the app open for the episode's duration.
+- **Export:** deterministic 24 fps H.264 MP4 at 1080p (4K stills supported) plus a PNG sequence, with audio muxed offline. The older realtime 720p WebM review cut is still available.
 
 Shortcuts: **Space** play/pause, **Ctrl/Cmd+S** save, **Ctrl/Cmd+Z** undo.
 
@@ -114,7 +114,7 @@ GPL-3.0-or-later. Original sample art and stories use the project license. See [
 
 ## Reusable cast and worlds
 
-The original Quantumania family includes five articulated character rigs with nine mouth drawings, four hand poses, different silhouettes and cached voice auditions. Open Examples to load the cast. Assets → + offers 18 editable standards, including buildings, plants, worlds and environments. Save your modifications as reusable standards. See [Standards and cast](docs/STANDARDS.md).
+The reference cast is **Dot Lind**, **Teo Lind** and **Gloam**, with nine Rhubarb mouth drawings on Dot. The green swirl portal standard is now a vertical reality seam. See [Standards and cast](docs/STANDARDS.md) and `quantimation-art/BIBLE.md`.
 
 Exports save removable SRT subtitles alongside the video. Burned-in captions default off. See [Visual review architecture](docs/VISION_REVIEW.md) for the proposed local/cloud inspection workflow; a vision reviewer is not connected yet.
 

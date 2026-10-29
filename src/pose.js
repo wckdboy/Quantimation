@@ -49,5 +49,5 @@ export function motionOffset(motion, time) {
   if (motion === "bounce") return -Math.abs(Math.sin(time * 3)) * 18;
   if (motion === "float") return Math.sin(time * 2) * 12;
   if (motion === "walk") return -Math.abs(Math.sin(time * 7)) * 9;
-  return Math.sin(time * 2) * 2;
+  return 0;
 }
