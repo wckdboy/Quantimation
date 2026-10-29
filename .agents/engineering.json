@@ -1,0 +1,44 @@
+{
+  "schema": "eng-config/v1",
+  "project": "Quantimation",
+  "commands": {
+    "fast": [
+      {
+        "name": "test",
+        "run": "npm run test",
+        "timeout": 900
+      }
+    ],
+    "full": [
+      {
+        "name": "test",
+        "run": "npm run test",
+        "timeout": 900
+      }
+    ]
+  },
+  "security": {
+    "required": [
+      "gitleaks",
+      "semgrep"
+    ],
+    "optional": [
+      "osv-scanner",
+      "actionlint"
+    ],
+    "gitleaks_config": ".agents/config/gitleaks.toml",
+    "semgrep_config": ".agents/config/semgrep.yml",
+    "gitleaks_history": false,
+    "timeout": 600
+  },
+  "budgets": {
+    "fast_seconds": 300,
+    "full_seconds": 1800
+  },
+  "parallel": {
+    "max_worktrees": 4
+  },
+  "impact": {
+    "base": "origin/main"
+  }
+}

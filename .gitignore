@@ -9,3 +9,5 @@ speech-cache/
 .cache/
 mcp-connection.json
 tools/rhubarb/
+.agents/evidence/
+.worktrees/

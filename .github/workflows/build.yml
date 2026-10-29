@@ -24,6 +24,38 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Set up Python for engineering scans
+        if: runner.os != 'Windows'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Install engineering scanners
+        if: runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check semgrep==1.182.0
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.7.0
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Engineering verification
+        if: runner.os != 'Windows'
+        run: ./.agents/bin/eng verify --profile full --ci
+      - name: Upload engineering evidence
+        if: always() && runner.os != 'Windows'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eng-evidence-${{ runner.os }}
+          path: .agents/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Windows engineering evidence is unverified
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "eng verify did not run on Windows."
+          echo "The evidence index uses fcntl and is supported on macOS and Linux only."
+          echo "This step records unverified. It is not an eng pass."
       - name: Build desktop distribution
         run: npm run dist -- --publish never
         env:

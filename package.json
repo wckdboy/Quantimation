@@ -94,5 +94,8 @@
     "kokoro-js": "1.2.1",
     "mespeak": "2.0.2",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "sharp": "0.35.5"
   }
 }
