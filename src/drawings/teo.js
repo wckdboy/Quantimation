@@ -127,69 +127,40 @@ function goggle(prefix, cx, cy, r, pupilShift = 0) {
 function hand(id, origin, pose) {
   const [x, y] = origin;
   const relaxed = [
-    [x + 2, y],
-    [x - 16, y + 18],
-    [x - 22, y + 40],
-    [x - 24, y + 64],
-    [x - 10, y + 52],
-    [x - 8, y + 74],
-    [x + 4, y + 54],
-    [x + 6, y + 80],
-    [x + 18, y + 56],
-    [x + 14, y + 40],
-    [x + 30, y + 50],
-    [x + 22, y + 26],
-    [x + 32, y + 16],
-    [x + 16, y + 6],
+    [x + 4, y], [x - 10, y + 8], [x - 20, y + 22], [x - 16, y + 36],
+    [x - 4, y + 28], [x - 6, y + 46], [x + 6, y + 50], [x + 8, y + 34],
+    [x + 14, y + 48], [x + 24, y + 44], [x + 20, y + 28],
+    [x + 26, y + 32], [x + 30, y + 18], [x + 18, y + 6],
   ];
   const point = [
-    [x + 2, y],
-    [x - 12, y + 16],
-    [x - 14, y + 40],
-    [x - 2, y + 48],
-    [x + 8, y + 36],
-    [x + 6, y + 52],
-    [x + 4, y + 86],
-    [x + 16, y + 90],
-    [x + 18, y + 52],
-    [x + 16, y + 34],
-    [x + 26, y + 40],
-    [x + 24, y + 18],
-    [x + 10, y + 4],
+    [x + 2, y], [x - 12, y + 12], [x - 16, y + 30], [x - 4, y + 26],
+    [x - 2, y + 44], [x + 10, y + 42], [x + 8, y + 24],
+    [x + 12, y + 20], [x + 8, y + 70], [x + 20, y + 72], [x + 22, y + 22],
+    [x + 26, y + 16], [x + 14, y + 2],
   ];
   const grip = [
-    [x + 4, y + 2],
-    [x - 10, y + 16],
-    [x - 12, y + 36],
-    [x, y + 30],
-    [x + 4, y + 46],
-    [x + 14, y + 32],
-    [x + 18, y + 48],
-    [x + 26, y + 30],
-    [x + 22, y + 14],
-    [x + 34, y + 22],
-    [x + 32, y + 6],
-    [x + 16, y],
+    [x + 2, y], [x - 14, y + 12], [x - 18, y + 28], [x - 6, y + 24],
+    [x - 2, y + 36], [x + 10, y + 32], [x + 8, y + 18],
+    [x + 16, y + 28], [x + 24, y + 22], [x + 18, y + 10], [x + 8, y + 2],
   ];
   const open = [
-    [x + 4, y],
-    [x - 14, y + 18],
-    [x - 28, y + 48],
-    [x - 22, y + 70],
-    [x - 10, y + 52],
-    [x - 8, y + 78],
-    [x + 6, y + 82],
-    [x + 8, y + 50],
-    [x + 16, y + 80],
-    [x + 30, y + 74],
-    [x + 22, y + 44],
-    [x + 34, y + 58],
-    [x + 46, y + 46],
-    [x + 28, y + 22],
-    [x + 14, y + 4],
+    [x + 2, y], [x - 16, y + 10], [x - 22, y + 28], [x - 10, y + 22],
+    [x - 14, y + 42], [x - 2, y + 46], [x + 4, y + 24],
+    [x + 8, y + 48], [x + 20, y + 44], [x + 16, y + 20],
+    [x + 26, y + 36], [x + 36, y + 24], [x + 22, y + 6],
   ];
   const poses = { relaxed, point, grip, open };
-  return ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" });
+  const cuts = {
+    relaxed: [[x - 2, y + 30], [x + 2, y + 46], [x + 12, y + 28], [x + 16, y + 44]],
+    point: [[x, y + 24], [x + 4, y + 40]],
+    grip: [[x, y + 16], [x + 6, y + 30]],
+    open: [[x - 4, y + 22], [x, y + 42], [x + 12, y + 22], [x + 18, y + 42]],
+  };
+  const seam = cuts[pose] || cuts.relaxed;
+  return [
+    ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" }),
+    ring(`${id}Fingers`, seam, "none", "interior", { open: true }),
+  ];
 }
 
 function gripTool(id, origin) {
@@ -333,8 +304,8 @@ function frontStand() {
     ...leg("legL", -1),
     ...leg("legR", 1),
     ...torsoFront(),
-    hand("handL", [CX - 58, Y.shoulder + 138], "relaxed"),
-    hand("handR", [CX + 58, Y.shoulder + 138], "relaxed"),
+    ...hand("handL", [CX - 58, Y.shoulder + 138], "relaxed"),
+    ...hand("handR", [CX + 58, Y.shoulder + 138], "relaxed"),
     ring("neck", [
       [CX - 22, Y.chin - 8], [CX, Y.chin - 14], [CX + 22, Y.chin - 8],
       [CX + 28, Y.shoulder - 2], [CX - 28, Y.shoulder - 2],
@@ -394,8 +365,8 @@ function quarterStand() {
     ...leg("legL", -1),
     ...leg("legR", 1),
     ...torsoFront(),
-    hand("handL", [CX - 58, Y.shoulder + 138], "relaxed"),
-    hand("handR", [CX + 58, Y.shoulder + 138], "relaxed"),
+    ...hand("handL", [CX - 58, Y.shoulder + 138], "relaxed"),
+    ...hand("handR", [CX + 58, Y.shoulder + 138], "relaxed"),
     ring("neck", [
       [CX - 18, Y.chin - 6], [CX + 16, Y.chin - 12], [CX + 26, Y.shoulder - 4], [CX - 22, Y.shoulder],
     ], SKIN),
@@ -517,12 +488,14 @@ function profileBody(dy, legF, legB, arm) {
       [314 + arm * 0.1, Y.shoulder + dy + 80],
     ], "none", "interior", { open: true }),
     ring("cuff", [[330 + arm, Y.shoulder + dy + 124], [304 + arm * 0.2, Y.shoulder + dy + 138]], "none", "interior", { open: true }),
-    hand("handF", [314 + arm, Y.shoulder + dy + 128], "relaxed"),
+    ...hand("handF", [314 + arm, Y.shoulder + dy + 128], "relaxed"),
+    ring("trap", [
+      [248, Y.chin + dy - 8], [286, Y.shoulder + dy - 22], [336, Y.shoulder + dy - 8],
+      [318, Y.shoulder + dy + 16], [270, Y.shoulder + dy + 10], [240, Y.shoulder + dy - 4],
+    ], SHIRT, "contour", { shadow: true }),
     ring("neck", [
-      [304, Y.chin + dy - 2],
-      [324, Y.chin + dy + 2],
-      [322, Y.shoulder + dy - 12],
-      [298, Y.shoulder + dy - 8],
+      [286, Y.chin + dy - 10], [332, Y.chin + dy - 2], [340, Y.shoulder + dy - 6],
+      [308, Y.shoulder + dy + 8], [274, Y.shoulder + dy - 2],
     ], SKIN),
     ...profileHead(dy),
   ];
@@ -567,43 +540,43 @@ function walk() {
 function seated(name, talking) {
   const poseR = talking ? "open" : "relaxed";
   const body = [
-    ring("shinL", [
-      [312, 756], [336, 768], [340, 848], [308, 852], [292, 772],
-    ], OVERALL, "contour", { shadow: true }),
-    ring("bootL", [[300, 834], [288, 862], [306, 888], [372, 884], [368, 844], [334, 828]], BOOT),
-    ring("shinR", [
-      [436, 836], [458, 848], [462, 868], [428, 872], [418, 848],
-    ], OVERALL),
-    ring("bootR", [[424, 858], [416, 872], [436, 888], [500, 884], [494, 856], [456, 848]], BOOT),
     ring("thighL", [
-      [348, 722], [312, 736], [286, 768], [278, 802], [308, 812], [342, 770], [364, 736],
+      [336, 768], [300, 800], [284, 842], [318, 856], [352, 812], [368, 776],
     ], OVERALL, "contour", { shadow: true }),
     ring("thighR", [
-      [372, 728], [410, 760], [448, 820], [468, 848], [430, 858], [392, 810], [360, 746],
+      [404, 768], [448, 800], [476, 842], [444, 856], [408, 812], [392, 776],
     ], OVERALL, "contour", { shadow: true }),
-    ring("kneeL", [[312, 746], [328, 762], [316, 774]], "none", "interior", { open: true }),
-    ring("kneeR", [[436, 744], [452, 760], [440, 772]], "none", "interior", { open: true }),
+    ring("kneeL", [[290, 834], [314, 850], [298, 856]], "none", "interior", { open: true }),
+    ring("kneeR", [[448, 834], [472, 850], [456, 856]], "none", "interior", { open: true }),
+    ring("shinL", [
+      [288, 848], [320, 856], [316, 874], [286, 878], [280, 856],
+    ], OVERALL, "contour", { shadow: true }),
+    ring("shinR", [
+      [444, 848], [476, 856], [472, 874], [442, 878], [436, 856],
+    ], OVERALL),
+    ring("bootL", [[278, 866], [270, 880], [292, 888], [332, 884], [326, 864], [300, 860]], BOOT),
+    ring("bootR", [[434, 866], [428, 880], [450, 888], [494, 884], [488, 864], [456, 860]], BOOT),
     ring("deltL", [[318, 552], [348, 536], [372, 556], [356, 578], [322, 572]], SHIRT, "contour", { shadow: true }),
     ring("deltR", [[428, 552], [398, 536], [374, 556], [390, 578], [424, 572]], SHIRT, "contour", { shadow: true }),
     ring("shirt", [
-      [324, 568], [360, 548], [408, 556], [424, 610], [404, 728], [348, 742], [318, 620],
+      [300, 540], [348, 524], [396, 536], [412, 590], [404, 762], [360, 784], [324, 770], [292, 620],
     ], SHIRT, "contour", { shadow: true }),
     ring("collar", [[356, 556], [372, 578], [388, 554]], "none", "interior", { open: true }),
     ring("bib", [[350, 590], [394, 588], [388, 708], [346, 712]], OVERALL),
     ring("strapL", [[354, 594], [342, 564], [358, 552], [366, 592]], OVERALL),
     ring("strapR", [[390, 592], [404, 562], [386, 550], [378, 590]], OVERALL),
     ring("sleeveL", [
-      [330, 558], [312, 590], [304, 660], [318, 704], [334, 694], [340, 620], [348, 568],
+      [332, 556], [322, 640], [316, 748], [334, 754], [340, 640], [346, 562],
     ], SHIRT),
-    ring("foldL", [[314, 640], [326, 654], [316, 666]], "none", "interior", { open: true }),
+    ring("foldL", [[322, 690], [334, 702], [324, 714]], "none", "interior", { open: true }),
     ring("sleeveR", talking
       ? [[408, 558], [448, 520], [496, 498], [510, 520], [482, 536], [440, 552], [404, 572]]
-      : [[400, 558], [418, 600], [428, 668], [414, 706], [396, 694], [388, 620], [384, 568]], SHIRT),
+      : [[396, 556], [408, 640], [416, 748], [398, 754], [388, 640], [382, 562]], SHIRT),
     ring("foldR", talking
       ? [[440, 528], [452, 540], [442, 550]]
       : [[384, 626], [392, 640], [386, 652]], "none", "interior", { open: true }),
-    hand("handL", [318, 700], "relaxed"),
-    hand("handR", talking ? [516, 496] : [430, 700], poseR),
+    ...hand("handL", [292, 830], "relaxed"),
+    ...hand("handR", talking ? [500, 500] : [452, 830], poseR),
     ring("neck", [[356, 520], [384, 516], [390, 560], [352, 564]], SKIN),
     disc("curl0", 330, 400, 13, HAIR),
     disc("curl1", 358, 384, 16, HAIR),
@@ -631,11 +604,11 @@ function chairAndSit() {
 
 function handSheet() {
   return sheet("front", "hands", [
-    hand("relaxed", [70, 80], "relaxed"),
-    hand("point", [200, 80], "point"),
+    ...hand("relaxed", [70, 80], "relaxed"),
+    ...hand("point", [200, 80], "point"),
     gripTool("driver", [330, 90]),
-    hand("grip", [340, 80], "grip"),
-    hand("open", [500, 70], "open"),
+    ...hand("grip", [340, 80], "grip"),
+    ...hand("open", [500, 70], "open"),
   ], [[80, 200], [520, 200]], 40, 80);
 }
 

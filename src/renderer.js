@@ -505,15 +505,14 @@ export function renderFrame(canvas, episode, time, options = {}) {
     ctx.restore();
   }
   const lines = s.dialogue.filter((d) => t >= d.at && t < d.at + d.duration);
-  const cast = lensCam
-    ? [...s.instances].sort((a, b) => {
-        const depthOf = (actor) =>
-          actor.drawingKeys?.length
-            ? samplePose(actor.drawingKeys, poseTimeOf(actor), { twos: actor.timing !== "ones" }).wz
-            : 0;
-        return depthOf(b) - depthOf(a);
-      })
-    : s.instances;
+  const cast = [...s.instances].sort((a, b) => {
+    const depthOf = (actor) => {
+      if (!actor.drawingKeys?.length) return 0;
+      const pose = samplePose(actor.drawingKeys, poseTimeOf(actor), { twos: actor.timing !== "ones" });
+      return lensCam ? pose.wz || 0 : pose.depth || 0;
+    };
+    return depthOf(b) - depthOf(a);
+  });
   function poseTimeOf(actor) {
     return actor.onOnes || options.animOnTwos === false ? t : timing.poseTime;
   }
@@ -609,7 +608,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
       ctx.scale(1, 1 / Math.max(0.2, drawScale));
       ctx.fillStyle = "#5C614E";
       ctx.beginPath();
-      ctx.ellipse(mid, 3, Math.max(16, span * 0.55), 4.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(mid, 3, Math.max(14, Math.min(28, span * 0.35)), 4, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

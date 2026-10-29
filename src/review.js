@@ -191,7 +191,7 @@ function scanFrame(canvas, feet, wide) {
     for (let x = x0; x < x1; x += 2) {
       const i = (y * width + x) * 4;
       const rgb = [data[i], data[i + 1], data[i + 2]];
-      if (near(rgb, SHADOW, 10)) shadowPts.push([x, y]);
+      if (near(rgb, SHADOW, 5)) shadowPts.push([x, y]);
     }
   }
   const luma = (x, y) => {
@@ -235,7 +235,7 @@ function scanFrame(canvas, feet, wide) {
       const wideShadow = Math.max(...xs) - Math.min(...xs);
       const nearFoot = feet.some((foot) => Math.abs(foot.sx - cx) < 90);
       if (!nearFoot && cluster.length > 40) flags.push(`orphan-shadow x${Math.round(cx)}`);
-      if (nearFoot && cluster.length > 80 && tall > 24 && wideShadow > 90) {
+      if (nearFoot && cluster.length > 120 && tall > 40 && wideShadow > 120) {
         flags.push(`shadow-dome ${Math.round(wideShadow)}x${Math.round(tall)}`);
       }
     }
@@ -259,11 +259,23 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     const props = layoutPolys(shot.camera.perspective);
     const flags = [];
     const feet = [];
+    const scales = [];
     for (const actor of scene.instances) {
       if (!actor.drawingKeys?.length) continue;
       const pose = samplePose(actor.drawingKeys, t, { twos: actor.timing !== "ones", fps });
       flags.push(...modelFlags(actor, pose, sheet));
       const place = groundPlacement(scene, pose, 0, rig);
+      const model = MODELS[actor.assetId];
+      if (model) {
+        scales.push({
+          id: actor.id,
+          world: model.world,
+          footY: place.y,
+          horizon: place.horizon,
+          floorFront: place.floorFront,
+          height: model.world * place.scale,
+        });
+      }
       const foot = [place.x, place.y];
       const screen = framePoint(foot[0], foot[1], shot, frame.width, frame.height);
       feet.push({ id: actor.id, x: foot[0], y: foot[1], sx: screen.x, sy: screen.y, drawing: pose.drawing || "stand" });
@@ -291,6 +303,7 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     const feetOut = props.feet.some(([x, y]) => x > view.left && x < view.right && y > view.bottom + 8);
     const someoneSeated = feet.some((foot) => String(foot.drawing).startsWith("sit"));
     if (seatIn && feetOut && !someoneSeated) flags.push("chair-cropped");
+    flags.push(...horizonScaleFlags(scales));
     const envId = shot.camera.perspective === "low" ? "dot_kitchen_low" : "dot_kitchen";
     const plate = episode.assets.find((asset) => asset.id === envId) || episode.assets.find((asset) => asset.id === "dot_kitchen");
     flags.push(...underfootFlags(flatShapes(plate?.shapes), feet));
@@ -326,20 +339,55 @@ function underfootFlags(shapes, feet) {
   return flags;
 }
 
-function seatFlags(pose, place, seat) {
-  const art = drawCharacter("teo", pose);
-  const shirt = art.shapes.find((shape) => shape.id === "shirt");
-  if (!shirt) return ["teo-no-seat"];
-  const hip = pathBox(shirt.path);
+function toScreen(art, place, x, y) {
   const footY = Math.max(...art.metrics.feet.map((foot) => foot[1]));
   const drawScale = place.scale * ((MODELS.teo?.world || 380) / Math.max(40, art.metrics.span));
-  const hipX = place.x + ((hip.x0 + hip.x1) / 2 - art.width / 2) * drawScale;
-  const hipY = place.y + (hip.y1 - footY) * drawScale;
-  const box = bounds(seat);
-  const gap = box.y0 - hipY;
+  return [
+    place.x + (x - art.width / 2) * drawScale,
+    place.y + (y - footY) * drawScale,
+  ];
+}
+
+function highestPoint(shape) {
+  const nums = String(shape?.path || "").match(/-?\d*\.?\d+/g)?.map(Number) || [];
+  let best = null;
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    if (!best || nums[i + 1] < best[1]) best = [nums[i], nums[i + 1]];
+  }
+  return best;
+}
+
+function centerX(shape) {
+  const box = shape ? pathBox(shape.path) : null;
+  return box ? (box.x0 + box.x1) / 2 : null;
+}
+
+function seatFlags(pose, place, seat) {
+  const art = drawCharacter("teo", pose);
+  const hips = ["thighL", "thighR"].map((id) => highestPoint(art.shapes.find((shape) => shape.id === id))).filter(Boolean);
+  if (hips.length < 2) return ["teo-no-seat"];
   const flags = [];
-  if (hipX < box.x0 - 24 || hipX > box.x1 + 24 || gap < -20 || gap > 48) {
-    flags.push(`teo-no-seat ${Math.round(hipX)},${Math.round(hipY)} gap${Math.round(gap)}`);
+  const screens = hips.map(([x, y]) => toScreen(art, place, x, y));
+  if (screens.some(([x, y]) => !inside(seat, x, y))) {
+    flags.push(`teo-no-seat ${screens.map((point) => point.map((n) => Math.round(n)).join(",")).join(" ")}`);
+  }
+  for (const side of ["L", "R"]) {
+    const knee = centerX(art.shapes.find((shape) => shape.id === `knee${side}`));
+    const boot = centerX(art.shapes.find((shape) => shape.id === `boot${side}`));
+    if (knee == null || boot == null || Math.abs(knee - boot) > 36) flags.push(`teo-foot-knee ${side}`);
+  }
+  return flags;
+}
+
+function horizonScaleFlags(samples) {
+  const flags = [];
+  for (const sample of samples) {
+    const span = Math.max(40, sample.floorFront - sample.horizon);
+    const perspective = Math.max(0.18, (sample.footY - sample.horizon) / span);
+    const expected = sample.world * (0.58 + 0.78 * perspective);
+    if (Math.abs(sample.height - expected) / expected > 0.05) {
+      flags.push(`scale-${sample.id} ${Math.round(sample.height)} vs ${Math.round(expected)}`);
+    }
   }
   return flags;
 }

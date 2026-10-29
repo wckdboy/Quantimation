@@ -32,24 +32,28 @@ const Y = {
 
 function sideHand(id, x, y, pose) {
   const relaxed = [
-    [x, y], [x - 12, y + 12], [x - 14, y + 36], [x - 10, y + 58],
-    [x, y + 66], [x + 10, y + 58], [x + 8, y + 44], [x + 12, y + 58],
-    [x + 18, y + 50], [x + 12, y + 28], [x + 22, y + 34], [x + 20, y + 16], [x + 8, y + 2],
+    [x + 2, y], [x - 12, y + 8], [x - 18, y + 24], [x - 12, y + 36],
+    [x - 2, y + 26], [x - 4, y + 44], [x + 8, y + 46], [x + 8, y + 28],
+    [x + 16, y + 42], [x + 26, y + 36], [x + 18, y + 16], [x + 8, y + 2],
   ];
   const grip = [
-    [x - 4, y + 4], [x - 16, y + 18], [x - 18, y + 40], [x - 6, y + 34],
-    [x - 8, y + 56], [x + 4, y + 58], [x + 8, y + 36],
-    [x + 10, y + 62], [x + 22, y + 60], [x + 18, y + 32],
-    [x + 22, y + 54], [x + 34, y + 48], [x + 26, y + 22],
-    [x + 30, y + 16], [x + 16, y + 4], [x + 4, y],
+    [x, y + 2], [x - 14, y + 12], [x - 16, y + 28], [x - 4, y + 22],
+    [x - 2, y + 36], [x + 10, y + 32], [x + 12, y + 18],
+    [x + 18, y + 28], [x + 26, y + 18], [x + 16, y + 6], [x + 4, y],
   ];
   const open = [
-    [x, y], [x - 28, y + 8], [x - 46, y + 28], [x - 36, y + 40],
-    [x - 18, y + 22], [x - 22, y + 48], [x - 8, y + 52], [x - 4, y + 24],
-    [x + 8, y + 50], [x + 22, y + 42], [x + 12, y + 18], [x + 24, y + 8],
+    [x, y], [x - 18, y + 6], [x - 28, y + 22], [x - 14, y + 18],
+    [x - 18, y + 40], [x - 4, y + 44], [x + 2, y + 20],
+    [x + 8, y + 42], [x + 20, y + 36], [x + 14, y + 14], [x + 22, y + 8],
   ];
   const poses = { grip, open, relaxed };
-  return ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" });
+  const seam = pose === "grip"
+    ? [[x - 2, y + 14], [x + 4, y + 30]]
+    : [[x, y + 24], [x + 4, y + 42], [x + 12, y + 24], [x + 16, y + 40]];
+  return [
+    ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" }),
+    ring(`${id}Fingers`, seam, "none", "interior", { open: true }),
+  ];
 }
 
 function tablet(id, x, y, w, h) {
@@ -132,8 +136,8 @@ function frontBody() {
       [CX - 18, Y.chin - 4], [CX + 18, Y.chin - 4], [CX + 22, s + 6], [CX - 22, s + 6],
     ], SKIN),
     ...tablet("pad", CX - 156, s + 86, 58, 84),
-    sideHand("handL", CX - 118, s + 112, "grip"),
-    sideHand("handR", CX + 64, s + 142, "relaxed"),
+    ...sideHand("handL", CX - 118, s + 112, "grip"),
+    ...sideHand("handR", CX + 64, s + 142, "relaxed"),
   ];
 }
 
@@ -172,9 +176,9 @@ function quarterPose(name, mode) {
       ? [[c - 48, s + 8], [c - 90, s - 6], [c - 128, s + 8], [c - 150, s + 28], [c - 132, s + 46], [c - 96, s + 30], [c - 52, s + 28]]
       : [[c - 44, s + 8], [c - 56, s + 30], [c - 62, s + 66], [c - 50, s + 80], [c - 42, s + 136], [c - 32, s + 132], [c - 38, s + 68], [c - 34, s + 16]], BLAZER),
     ring("elbowB", [[c - 70, s + 58], [c - 58, s + 72], [c - 68, s + 84]], "none", "interior", { open: true }),
-    sideHand("handB", gesture ? c - 168 : c - 80, gesture ? s + 28 : s + 132, gesture ? "open" : "relaxed"),
+    ...sideHand("handB", gesture ? c - 168 : c - 80, gesture ? s + 28 : s + 132, gesture ? "open" : "relaxed"),
     ...tablet("pad", c + 28, s + 108, 46, 64),
-    sideHand("handF", c + 22, s + 118, "grip"),
+    ...sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [
       [c - 62, Y.chin - 16], [c - 70, t + 80], [c - 52, t + 22], [c - 8, t + 2], [c + 34, t],
       [c + 70, t + 28], [c + 80, t + 78], [c + 72, Y.chin - 14], [c + 46, Y.chin - 6],
@@ -228,7 +232,7 @@ function profileStand() {
     ring("shirt", [[c - 4, s + 2], [c + 16, s - 2], [c + 10, Y.waist - 18], [c - 8, Y.waist - 8]], SHIRT),
     ring("neck", [[c - 10, Y.chin], [c + 16, Y.chin - 2], [c + 12, s + 6], [c - 16, s + 4]], SKIN),
     ...tablet("pad", c - 36, s + 96, 26, 78),
-    sideHand("handF", c - 16, s + 118, "grip"),
+    ...sideHand("handF", c - 16, s + 118, "grip"),
     ring("bob", [
       [c - 20, t + 8], [c + 10, t - 6], [c + 36, t + 24], [c + 28, t + 70], [c + 8, t + 40],
       [c - 8, t + 48], [c - 36, t + 90], [c - 48, t + 120], [c - 30, t + 70], [c - 28, t + 28],
@@ -261,8 +265,8 @@ function backStand() {
       [c - 86, s + 6], [c, s - 18], [c + 86, s + 6], [c + 70, Y.waist + 10], [c - 70, Y.waist + 12],
     ], BLAZER, "contour", { shadow: true }),
     ring("seam", [[c, s - 10], [c, Y.waist + 4]], "none", "interior", { open: true }),
-    sideHand("handL", c - 100, s + 140, "relaxed"),
-    sideHand("handR", c + 70, s + 140, "relaxed"),
+    ...sideHand("handL", c - 100, s + 140, "relaxed"),
+    ...sideHand("handR", c + 70, s + 140, "relaxed"),
     ring("bob", [
       [c - 78, t + 36], [c - 70, t + 8], [c - 28, t - 2], [c, t - 10], [c + 28, t - 2], [c + 70, t + 8],
       [c + 84, t + 48], [c + 86, t + 118], [c + 62, t + 148], [c + 24, t + 138],
