@@ -10,7 +10,8 @@ import {
 } from "./line-engine.mjs";
 import { onTwos, shakeOffset, smearVector, smoothstep } from "./timing.js";
 import { jointPositions, onionTimes, TRAIL_JOINTS, worldToCanvas } from "./onion.js";
-import { drawCharacter, groundPlacement, samplePose } from "./drawn.js";
+import { drawCharacter, groundPlacement, MODELS, samplePose } from "./drawn.js";
+import { actorPlacement, cameraRig, projectSet } from "./layout.js";
 
 const rad = (n) => (n * Math.PI) / 180;
 const pathCache = new Map();
@@ -435,16 +436,42 @@ export function renderFrame(canvas, episode, time, options = {}) {
     })();
   const rough = options.ink === "legacy" && /squiggly|hand.drawn|wicked/i.test(episode.style);
   const shake = shakeOffset(t, c.shake || 0, shot.start || 0);
+  const lensOn = s.lens === true && timing.ink !== "legacy";
+  const lensCam = lensOn ? cameraRig(shot.label, c.perspective, s.layout || "kitchen") : null;
   ctx.save();
   ctx.translate(640 + shake.x, 360 + shake.y);
-  ctx.rotate(rad(c.rotation || 0));
-  ctx.scale(zoom, zoom);
-  // Low/high camera shear is banned by the art bible. Onion trails use this same stack.
-  ctx.translate(-(c.x + (c.panX || 0) * ratio), -(c.y + (c.panY || 0) * ratio));
+  ctx.rotate(rad(lensCam ? 0 : c.rotation || 0));
+  ctx.scale(lensCam ? 1 : zoom, lensCam ? 1 : zoom);
+  // Low/high camera shear is banned by the art bible. A lens scene uses the 3D camera instead.
+  ctx.translate(
+    -(lensCam ? 640 : c.x + (c.panX || 0) * ratio),
+    -(lensCam ? 360 : c.y + (c.panY || 0) * ratio),
+  );
   const env = episode.assets.find((a) => a.id === s.environment);
   const shiftX = c.x + (c.panX || 0) * ratio - 640;
   const shiftY = c.y + (c.panY || 0) * ratio - 360;
-  if (env && !options.actorsOnly) {
+  const setQueue = lensCam && !options.actorsOnly
+    ? projectSet(s.layout === "garage" ? "garage" : s.layout === "market" ? "market" : "kitchen", lensCam)
+    : null;
+  let setCursor = 0;
+  const flushSet = (limit) => {
+    if (!setQueue) return;
+    while (setCursor < setQueue.length && setQueue[setCursor].z >= limit) {
+      drawShape(ctx, setQueue[setCursor], timing.poseTime, "still", 0, {
+        rough,
+        ink: timing.ink,
+        poseTime: timing.poseTime,
+        liveTime: timing.liveTime,
+        environment: true,
+        assetId: env?.id || s.layout || "kitchen",
+        k: 1,
+        canvasScale: canvas.width / 1280,
+        lightAngle: s.lightAngleDeg ?? 90,
+      });
+      setCursor += 1;
+    }
+  };
+  if (!setQueue && env && !options.actorsOnly) {
     ctx.save();
     ctx.scale(1280 / env.width, 720 / env.height);
     for (const n of env.shapes) {
@@ -467,7 +494,19 @@ export function renderFrame(canvas, episode, time, options = {}) {
     ctx.restore();
   }
   const lines = s.dialogue.filter((d) => t >= d.at && t < d.at + d.duration);
-  for (const p of s.instances) {
+  const cast = lensCam
+    ? [...s.instances].sort((a, b) => {
+        const depthOf = (actor) =>
+          actor.drawingKeys?.length
+            ? samplePose(actor.drawingKeys, poseTimeOf(actor), { twos: actor.timing !== "ones" }).wz
+            : 0;
+        return depthOf(b) - depthOf(a);
+      })
+    : s.instances;
+  function poseTimeOf(actor) {
+    return actor.onOnes || options.animOnTwos === false ? t : timing.poseTime;
+  }
+  for (const p of cast) {
     const asset = episode.assets.find((a) => a.id === p.assetId);
     if (!asset) continue;
     const poseTime =
@@ -485,6 +524,12 @@ export function renderFrame(canvas, episode, time, options = {}) {
       (asset.kind === "character" || asset.kind === "creature")
         ? smearVector(previous, state)
         : null;
+    if (lensCam) {
+      const depth = p.drawingKeys?.length
+        ? samplePose(p.drawingKeys, poseTime, { twos: p.timing !== "ones" }).wz
+        : 0;
+      flushSet(depth);
+    }
     ctx.save();
     ctx.globalAlpha = state.opacity;
     const beat = (p.beats || []).find(
@@ -511,7 +556,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
     let drawY = state.y;
     let drawScale = state.scale;
     if (p.drawingKeys?.length && timing.ink !== "legacy") {
-      const pitch = c.perspective === "low" ? 16 : c.perspective === "high" ? -14 : 0;
+      const pitch = lensCam ? lensCam.pitch : c.perspective === "low" ? 16 : c.perspective === "high" ? -14 : 0;
       const pose = samplePose(
         p.drawingKeys.map((key) => ({ ...key, character: p.assetId })),
         poseTime,
@@ -525,11 +570,13 @@ export function renderFrame(canvas, episode, time, options = {}) {
         const mouthPose = poseAt(mouthTrack, timing.liveTime ?? t);
         if (mouthPose.variant && mouthPose.variant !== "auto") pose.viseme = mouthPose.variant;
       }
-      const place = groundPlacement(s, pose, pitch);
+      drawnArt = drawCharacter(p.assetId, pose);
+      const place = lensCam
+        ? actorPlacement(lensCam, pose, MODELS[p.assetId] || MODELS.dot, drawnArt.metrics)
+        : groundPlacement(s, pose, pitch);
       drawX = place.x;
       drawY = place.y;
       drawScale = place.scale;
-      drawnArt = drawCharacter(p.assetId, pose);
     }
     ctx.translate(drawX, drawY + bob);
     ctx.rotate(rad(state.rotation + (p.motion === "spin" ? poseTime * 50 : 0)));
@@ -613,6 +660,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
     }
     ctx.restore();
   }
+  flushSet(-1e9);
   ctx.restore();
   if (s.grade && timing.ink !== "legacy" && !options.actorsOnly) {
     const strength = s.grade.strength ?? 0.22;

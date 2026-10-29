@@ -1,6 +1,7 @@
-// Construction drawings. A pose is volumes and a gesture; each drawing is a
-// fresh contour, traced from those volumes so clothing and hands are single
-// outlines. Holds repeat a drawing. Twos advance the drawing every second frame.
+// Construction drawings. A pose is volumes and a gesture; each drawing is rebuilt
+// from the head, rib cage, pelvis and tapered limbs. Holds repeat a drawing.
+// Twos advance the drawing every second frame.
+import { constructCharacter } from "./construct.js";
 
 const SUP = 2;
 
@@ -17,6 +18,7 @@ export const MODELS = {
     pants: ["#3B3E46", "#2A2C33"],
     shoes: ["#1F1E23", "#151418"],
     prop: "#2C3038",
+    cm: 165,
   },
   teo: {
     name: "Teo Lind",
@@ -30,6 +32,7 @@ export const MODELS = {
     pants: ["#66704A", "#4C5536"],
     shoes: ["#7A5233", "#5B3C24"],
     buckle: "#B9A46A",
+    cm: 183,
   },
   gloam: {
     name: "Gloam",
@@ -42,6 +45,7 @@ export const MODELS = {
     shirt: ["#8AB3A2", "#6B9282"],
     pants: ["#8AB3A2", "#6B9282"],
     shoes: ["#6B9282", "#567568"],
+    cm: 112,
   },
 };
 
@@ -75,9 +79,14 @@ export function defaultPose(id = "dot") {
     plantR: 1,
     depth: 0.25,
     groundX: 0,
+    wx: 220,
+    wz: 180,
+    facing: 1,
     arc: 0,
     pitch: 0,
     hairLag: 0,
+    clothLag: 0,
+    beardLag: 0,
     boil: 0,
   };
 }
@@ -96,6 +105,7 @@ export function normalizePose(id, pose = {}) {
   if (!VISEMES.includes(next.viseme)) next.viseme = "X";
   next.squash = Math.max(0.82, Math.min(1.16, num(next, "squash", 1)));
   next.pitch = Math.max(-28, Math.min(28, num(next, "pitch", 0)));
+  next.facing = num(next, "facing", 1) < 0 ? -1 : 1;
   return next;
 }
 
@@ -111,7 +121,9 @@ export function samplePose(keys = [], time = 0, { twos = true, fps = 24 } = {}) 
   const t = drawing / fps;
   const pose = poseAt(keys, t);
   const lagged = poseAt(keys, Math.max(0, t - 2 / fps));
-  pose.hairLag = (lagged.lean - pose.lean) * 0.85;
+  pose.hairLag = (lagged.lean - pose.lean) * 0.9 + (lagged.headTilt - pose.headTilt) * 0.45;
+  pose.clothLag = (lagged.lean - pose.lean) * 1.15 + ((lagged.squash || 1) - (pose.squash || 1)) * 8;
+  pose.beardLag = (lagged.lean - pose.lean) * 1.25 + (lagged.headTilt - pose.headTilt) * 0.7;
   pose.boil = drawing;
   return pose;
 }
@@ -132,16 +144,23 @@ function poseAt(keys, t) {
   const u = smoothstep((t - a.t) / span);
   const pose = normalizePose(a.character || id, {});
   for (const key of Object.keys(pose)) {
-    if (typeof a[key] === "number" && typeof b[key] === "number") pose[key] = a[key] + (b[key] - a[key]) * u;
+    if (key === "facing") continue;
+    if (typeof a[key] === "number" || typeof b[key] === "number") {
+      const av = typeof a[key] === "number" ? a[key] : pose[key];
+      const bv = typeof b[key] === "number" ? b[key] : av;
+      pose[key] = av + (bv - av) * u;
+    }
   }
   pose.view = u < 0.5 ? a.view || pose.view : b.view || a.view || pose.view;
   pose.handL = u < 0.5 ? a.handL || "relaxed" : b.handL || a.handL || "relaxed";
   pose.handR = u < 0.5 ? a.handR || "relaxed" : b.handR || a.handR || "relaxed";
   pose.viseme = u < 0.5 ? a.viseme || "X" : b.viseme || a.viseme || "X";
   pose.prop = u < 0.5 ? a.prop || "" : b.prop || a.prop || "";
+  pose.facing = u < 0.5 ? a.facing ?? 1 : b.facing ?? a.facing ?? 1;
   pose.character = a.character || id;
   const bow = Math.sin(u * Math.PI) * (b.arc || a.arc || 0);
   pose.groundX += bow;
+  pose.wx += bow * 0.35;
   return normalizePose(pose.character, pose);
 }
 
@@ -804,53 +823,23 @@ const cache = new Map();
 export function drawCharacter(characterId = "dot", pose = {}) {
   const id = MODELS[characterId] ? characterId : "dot";
   const normal = normalizePose(id, { ...pose, character: id });
-  const key = JSON.stringify([id, normal.view, Math.round(normal.lean), Math.round(normal.lShoulder), Math.round(normal.lElbow), Math.round(normal.rShoulder), Math.round(normal.rElbow), Math.round(normal.lHip), Math.round(normal.lKnee), Math.round(normal.rHip), Math.round(normal.rKnee), normal.handL, normal.handR, normal.viseme, Math.round(normal.squash * 20), Math.round(normal.pitch), Math.round(normal.weight * 4), normal.prop, Math.round(normal.blink * 4)]);
+  const key = JSON.stringify([
+    id, normal.view, normal.facing, Math.round(normal.lean), Math.round(normal.lShoulder), Math.round(normal.lElbow),
+    Math.round(normal.rShoulder), Math.round(normal.rElbow), Math.round(normal.lHip), Math.round(normal.lKnee),
+    Math.round(normal.rHip), Math.round(normal.rKnee), normal.handL, normal.handR, normal.viseme,
+    Math.round(normal.squash * 20), Math.round(normal.pitch), Math.round(normal.weight * 4), normal.prop,
+    Math.round(normal.blink * 4), Math.round(normal.hairLag * 4), Math.round(normal.clothLag * 4), Math.round(normal.beardLag * 4),
+    Math.round(normal.plantL * 4), Math.round(normal.plantR * 4),
+  ]);
   let built = cache.get(key);
   if (!built) {
-    built = rasterize(id, normal);
+    built = constructCharacter(id, normal, MODELS[id]);
     if (cache.size > 240) cache.clear();
     cache.set(key, built);
   }
-  const { grid, anchors, out, model } = built;
-  const shapes = [];
-  const loops = {};
-  for (const mat of [MAT.shoe, MAT.pants, MAT.shirt, MAT.jacket, MAT.skin, MAT.beard, MAT.hair, MAT.vest, MAT.hand, MAT.prop]) {
-    const found = [];
-    for (const loop of chains(grid, mat)) {
-      let pts = rdp(loop, 1.5);
-      if (area(pts) < 40) continue;
-      pts = chaikin(pts, true).map(([x, y]) => [x * out, y * out]);
-      if (pts.length > 8) {
-        const fill = FILL[mat](model);
-        shapes.push({ ...contourShape(pts, fill[0], fill[1], mat === MAT.prop ? "prop" : "contour"), seed: normal.boil + mat });
-        found.push(pts);
-      }
-    }
-    loops[mat] = found.length;
-  }
-  for (const vest of grid.overlays || []) {
-    const pts = chaikin(vest.map(([x, y]) => [x * out, y * out]), true);
-    shapes.push({ ...contourShape(pts, model.cloth[0], model.cloth[1]), seed: normal.boil + 4 });
-  }
-  shapes.push(...features(built).map((shape) => ({ ...shape, seed: normal.boil + 9 })));
-  const feet = [anchors.leftFoot, anchors.rightFoot].filter(Boolean).map((p) => [p[0] * out, p[1] * out]);
   return {
-    width: grid.w * out,
-    height: grid.h * out,
-    shapes,
-    metrics: {
-      heads: model.heads,
-      measuredHeads: anchors.skullTop && anchors.chin
-        ? (anchors.feetY - anchors.skullTop[1]) / Math.max(12, anchors.chin[1] - anchors.skullTop[1])
-        : model.heads,
-      volume: anchors.volume / (SUP * SUP),
-      loops,
-      handLoops: loops[MAT.hand] || 0,
-      jacketLoops: loops[MAT.jacket] || loops[MAT.pants] || 0,
-      com: [anchors.com[0] * out, anchors.com[1] * out],
-      feet,
-      height: model.world,
-    },
+    ...built,
+    shapes: built.shapes.map((shape) => ({ ...shape, seed: (shape.seed || 1) + normal.boil })),
   };
 }
 
@@ -884,11 +873,11 @@ export function scaleCheck(scene, { fps = 24 } = {}) {
         flags.push({ code: "depth", instanceId: actor.id, t: time });
       }
       const art = drawCharacter(actor.assetId, pose);
-      const foot = art.metrics.feet[0];
-      if (foot && art.height - foot[1] > 18) {
-        flags.push({ code: "float", instanceId: actor.id, t: time, gap: Math.round(art.height - foot[1]) });
+      const lowest = art.metrics.feet.reduce((m, foot) => Math.max(m, foot[1]), 0);
+      if (art.metrics.feet.length && art.height - lowest > 18) {
+        flags.push({ code: "float", instanceId: actor.id, t: time, gap: Math.round(art.height - lowest) });
       }
-      if (foot && foot[1] - art.height > 4) {
+      if (art.metrics.feet.length && lowest - art.height > 4) {
         flags.push({ code: "sink", instanceId: actor.id, t: time });
       }
       const screen = model.world * place.scale * (actor.scale || 1);

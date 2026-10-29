@@ -297,7 +297,7 @@ export function validateEpisode(e) {
           const drawing = { t: num(key.t ?? 0, "drawing time", 0, duration) };
           for (const field of [
             "lean", "weight", "squash", "headTilt", "lShoulder", "lElbow", "rShoulder", "rElbow",
-            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "arc", "pitch", "blink", "plantL", "plantR",
+            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "wx", "wz", "facing", "arc", "pitch", "blink", "plantL", "plantR",
           ]) {
             if (key[field] !== undefined) drawing[field] = num(key[field], field, -400, 4000);
           }
@@ -374,6 +374,8 @@ export function validateEpisode(e) {
         : {}),
       ...(s.floorY !== undefined ? { floorY: num(s.floorY, "floor", 200, 900) } : {}),
       ...(s.vanishX !== undefined ? { vanishX: num(s.vanishX, "vanishing point", -500, 2000) } : {}),
+      ...(s.lens === true ? { lens: true } : {}),
+      ...(s.layout ? { layout: str(s.layout, "layout", 40) } : {}),
       ...(s.contactShadow
         ? { contactShadow: color(s.contactShadow) }
         : {}),

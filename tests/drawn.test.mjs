@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { drawCharacter, inbetweenKeys, modelCheck, samplePose } from "../src/drawn.js";
 import { kitchenEpisode } from "../src/broadcast-demo.js";
+import { cameraRig, project } from "../src/layout.js";
+import { buildSet } from "../src/sets.js";
 
 test("a drawn hand is one contour and a held drawing does not change on the next frame", () => {
   for (const id of ["dot", "teo", "gloam"]) {
@@ -41,4 +43,33 @@ test("page four stores redrawn keys for a walk, a seat, and a gripped prop", () 
   assert.equal(dot.drawingKeys[0].handL, "grip");
   assert.equal(scene.shots.length, 4);
   assert.ok(scene.shots.some((shot) => shot.camera.perspective === "low"));
+  assert.equal(scene.lens, true);
+  assert.ok(teo.drawingKeys.some((key) => key.lHip > -8 && key.t > teo.drawingKeys.find((seat) => seat.lHip < -40).t));
+});
+
+test("construction keeps inner lines, a real turn, and a low lens converges", () => {
+  const front = drawCharacter("dot", { view: "front" });
+  const quarter = drawCharacter("dot", { view: "threeQuarter" });
+  const profile = drawCharacter("dot", { view: "profile" });
+  assert.ok(front.shapes.filter((shape) => shape.line === "contour").length > 6);
+  assert.ok(front.shapes.some((shape) => shape.line === "interior"));
+  assert.notEqual(front.shapes.find((shape) => shape.role === "head").path, profile.shapes.find((shape) => shape.role === "head").path);
+  assert.notEqual(quarter.shapes.find((shape) => shape.role === "head").path, front.shapes.find((shape) => shape.role === "head").path);
+  const grip = drawCharacter("dot", { view: "threeQuarter", handL: "grip", prop: "tablet" });
+  assert.ok(grip.shapes.some((shape) => shape.line === "prop"));
+  const gloam = drawCharacter("gloam", { view: "front", handL: "open" });
+  assert.equal(gloam.metrics.handLoops, 2);
+  const low = cameraRig("Low angle", "low", "kitchen");
+  const a = project(low, [0, 0, 220]);
+  const b = project(low, [0, 220, 220]);
+  const c = project(low, [420, 0, 220]);
+  const d = project(low, [420, 220, 220]);
+  const slope = (p, q) => (q.x - p.x) / (q.y - p.y);
+  assert.ok(Math.abs(slope(a, b) - slope(c, d)) > 0.02);
+  for (const id of ["suburb_kitchen", "coil_shed", "alien_market"]) {
+    const set = buildSet(id);
+    assert.ok(set.shapes.some((shape) => shape.parallax > 0));
+    const flat = JSON.stringify(set.shapes);
+    assert.equal(flat.includes("ellipse"), false);
+  }
 });
