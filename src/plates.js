@@ -154,7 +154,7 @@ function kitchen(cam) {
     worldFace(cam, "cabHandle", [[18, 200, 30], [22, 200, 30], [22, 184, 30], [18, 184, 30]], "#C4B496", "bgDetail"),
     worldFace(cam, "cabHandle2", [[118, 198, 30], [122, 198, 30], [122, 182, 30], [118, 182, 30]], "#C4B496", "bgDetail"),
     worldFace(cam, "cabShadow", [[-70, 154, 36], [210, 152, 36], [216, 144, 48], [-78, 146, 48]], "#C4B496", "bg"),
-    ...box(cam, "counter", -270, 200, 0, 92, 0, 64, counter, counterSide),
+    ...box(cam, "counter", -270, 200, 0, 92, 0, 40, counter, counterSide),
     ...[0, 1, 2, 3].map((i) => worldFace(
       cam,
       `splash${i}`,
@@ -168,7 +168,7 @@ function kitchen(cam) {
     drawn(cam, "tapSpout", [[-158, 128, 26], [-150, 136, 30], [-132, 128, 40], [-138, 118, 36], [-156, 122, 28]], "#C5C8CC", "prop"),
     drawn(cam, "tapHandleL", [[-176, 102, 22], [-168, 106, 22], [-170, 98, 20]], "#B0B4B8", "prop"),
     drawn(cam, "tapHandleR", [[-148, 106, 24], [-140, 102, 24], [-146, 96, 22]], "#B0B4B8", "prop"),
-    ...box(cam, "stove", 20, 170, 0, 92, 0, 64, steel, "#B7B2AA"),
+    ...box(cam, "stove", 20, 170, 0, 92, 0, 40, steel, "#B7B2AA"),
     worldFace(cam, "burner", [[50, 93, 22], [86, 93, 22], [82, 93, 42], [46, 93, 42]], "#6E6A66", "bgDetail"),
     worldFace(cam, "burner2", [[108, 93, 22], [144, 93, 22], [140, 93, 42], [104, 93, 42]], "#6E6A66", "bgDetail"),
     drawn(cam, "kettle", [[-48, 94, 28], [-28, 128, 32], [-8, 126, 36], [6, 100, 40], [-6, 94, 36], [-36, 94, 30]], "#C4553A", "prop"),
@@ -196,18 +196,15 @@ function kitchen(cam) {
     drawn(cam, "lampGlow", [[-8, 186, 32], [10, 186, 32], [6, 176, 34], [-4, 176, 34]], "#F6E7A2", "bgFar"),
     drawn(cam, "trash", [[248, 0, 160], [292, 0, 160], [286, 34, 156], [254, 34, 156]], "#8A847C", "prop"),
     drawn(cam, "trashRim", [[246, 32, 158], [294, 32, 158], [290, 38, 154], [250, 38, 154]], "#6E6A64", "prop"),
-    drawn(cam, "shadowPlant", [[-252, 1, 34], [-208, 1, 34], [-214, 3, 48], [-246, 3, 48]], "#A3A888", "bgFar"),
-    drawn(cam, "shadowKettle", [[-52, 1, 26], [10, 1, 26], [6, 3, 42], [-46, 3, 42]], "#A3A888", "bgFar"),
-    ...legs(cam, "table", 210, 330, 74, 76, 24, 96, "#C48A52", woodSide),
-    worldFace(cam, "chairLeg0", [[-40, 40, 156], [-34, 40, 156], [-32, 0, 158], [-42, 0, 158]], woodSide, "prop"),
-    worldFace(cam, "chairLeg1", [[18, 40, 156], [24, 40, 156], [28, 0, 158], [16, 0, 158]], woodSide, "prop"),
-    worldFace(cam, "chairLeg2", [[-36, 40, 118], [-30, 40, 118], [-28, 0, 116], [-38, 0, 116]], woodSide, "prop"),
-    worldFace(cam, "chairLeg3", [[16, 40, 118], [22, 40, 118], [26, 0, 116], [14, 0, 116]], woodSide, "prop"),
-    worldFace(cam, "chairSeat", [[-44, 42, 112], [28, 42, 112], [34, 42, 162], [-50, 42, 162]], "#C48A52", "prop"),
-    worldFace(cam, "chairBackL", [[-40, 42, 116], [-32, 42, 116], [-32, 86, 116], [-40, 86, 116]], "#A56B42", "prop"),
-    worldFace(cam, "chairBackR", [[16, 42, 116], [24, 42, 116], [24, 86, 116], [16, 86, 116]], "#A56B42", "prop"),
-    worldFace(cam, "chairSlat", [[-32, 70, 116], [16, 70, 116], [16, 78, 116], [-32, 78, 116]], "#C48A52", "prop"),
-    drawn(cam, "shadowChair", [[-48, 1, 110], [36, 1, 110], [30, 3, 164], [-42, 3, 164]], "#A3A888", "bgFar"),
+    ...legs(cam, "table", -210, -50, 0, 74, 48, 62, "#C48A52", woodSide),
+    worldFace(cam, "chairLeg0", [[-168, 42, 60], [-162, 42, 60], [-160, 0, 62], [-170, 0, 62]], woodSide, "prop"),
+    worldFace(cam, "chairLeg1", [[-112, 42, 60], [-106, 42, 60], [-104, 0, 62], [-114, 0, 62]], woodSide, "prop"),
+    worldFace(cam, "chairLeg2", [[-164, 42, 46], [-158, 42, 46], [-156, 0, 44], [-166, 0, 44]], woodSide, "prop"),
+    worldFace(cam, "chairLeg3", [[-108, 42, 46], [-102, 42, 46], [-100, 0, 44], [-110, 0, 44]], woodSide, "prop"),
+    worldFace(cam, "chairSeat", [[-174, 44, 44], [-100, 44, 44], [-94, 44, 64], [-180, 44, 64]], "#C48A52", "prop"),
+    worldFace(cam, "chairBackL", [[-168, 44, 46], [-160, 44, 46], [-160, 90, 46], [-168, 90, 46]], "#A56B42", "prop"),
+    worldFace(cam, "chairBackR", [[-112, 44, 46], [-104, 44, 46], [-104, 90, 46], [-112, 90, 46]], "#A56B42", "prop"),
+    worldFace(cam, "chairSlat", [[-160, 72, 46], [-112, 72, 46], [-112, 80, 46], [-160, 80, 46]], "#C48A52", "prop"),
   ];
   return [layer("room", 1, shapes)];
 }
@@ -280,6 +277,12 @@ function market(cam) {
   shapes.push(...box(cam, "crate", -300, -210, 0, 36, 280, 330, "#6A4A32", "#4A321F"));
   return [layer("room", 1, shapes)];
 }
+
+export const KITCHEN_LAYOUT = {
+  table: { x0: -210, x1: -50, top: 74, z0: 48, z1: 62 },
+  chair: { x0: -180, x1: -94, seat: 44, z0: 44, z1: 64 },
+  fridge: { x0: 220, x1: 320, top: 190, z0: 0, z1: 8 },
+};
 
 export function kitchenPlate() {
   return kitchen(EYE);

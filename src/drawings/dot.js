@@ -160,8 +160,9 @@ function quarterStand() {
     ...tablet("pad", c + 28, s + 108, 46, 64),
     sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [
-      [c - 42, t + 40], [c - 12, t + 8], [c + 24, t], [c + 56, t + 16], [c + 62, t + 42],
-      [c + 18, t + 34], [c - 8, t + 30], [c - 34, t + 64], [c - 50, t + 118], [c - 28, t + 52],
+      [c - 62, Y.chin - 16], [c - 70, t + 80], [c - 52, t + 22], [c - 8, t + 2], [c + 34, t],
+      [c + 70, t + 28], [c + 80, t + 78], [c + 72, Y.chin - 14], [c + 46, Y.chin - 6],
+      [c + 18, t + 34], [c - 14, t + 30], [c - 44, t + 78], [c - 48, Y.chin - 12],
     ], HAIR, "contour", { role: "hair" }),
     ring("head", [
       [c - 16, t + 6], [c + 28, t + 2], [c + 62, t + 36], [c + 70, t + 90],

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawCharacter, inbetweenKeys, modelCheck, samplePose, scaleCheck, stagingCheck } from "../src/drawn.js";
+import { reviewEpisode } from "../src/review.js";
 import { kitchenEpisode } from "../src/broadcast-demo.js";
 import { cameraRig, project } from "../src/layout.js";
 import { buildSet } from "../src/sets.js";
@@ -139,4 +140,10 @@ test("construction keeps inner lines, a real turn, and a low lens converges", ()
     const flat = JSON.stringify(set.shapes);
     assert.equal(flat.includes("ellipse"), false);
   }
+});
+
+test("every 12th page-four frame keeps the cast on model and on the floor", () => {
+  const report = reviewEpisode(kitchenEpisode(), { createCanvas, step: 12 });
+  assert.deepEqual(report.failures, [], JSON.stringify(report.failures, null, 2));
+  assert.ok(report.checked >= 30);
 });
