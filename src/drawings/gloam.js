@@ -1,6 +1,6 @@
 // Gloam. A dome on a pear, sweater vest, no brows. Two heads tall.
 
-import { goggle, ring, sheet } from "./ink.js";
+import { disc, ring, sheet, INK, SCLERA } from "./ink.js";
 
 const SKIN = "#8AB3A2";
 const SKIN_DK = "#6B9282";
@@ -12,6 +12,26 @@ const TOP = 48;
 const HH = 200;
 const CX = 320;
 const SOLE = TOP + 2.05 * HH;
+
+function sleepyEye(prefix, cx, cy, r, squint = 0) {
+  const open = Math.max(0.22, 0.4 - squint);
+  return [
+    ring(`${prefix}Eye`, [
+      [cx - r, cy + r * 0.04],
+      [cx - r * 0.15, cy - r * open],
+      [cx + r, cy],
+      [cx + r * 0.1, cy + r * open * 0.45],
+    ], SCLERA, "eye", { role: "eye" }),
+    ring(`${prefix}Lid`, [
+      [cx - r * 1.08, cy + r * 0.08],
+      [cx - r * 0.1, cy - r * (open + 0.28)],
+      [cx + r * 1.08, cy - r * 0.02],
+      [cx + r * 0.05, cy + r * 0.06],
+      [cx - r * 0.15, cy + r * 0.1],
+    ], SKIN),
+    disc(`${prefix}Pupil`, cx + r * 0.08, cy + r * 0.02, Math.max(2.2, r * 0.18), INK, "eye", { role: "pupil" }),
+  ];
+}
 
 function front(name = "stand") {
   const listen = name === "listen";
@@ -48,7 +68,6 @@ function front(name = "stand") {
     [CX + 46, t + 186],
   ];
   const eyeY = t + 108;
-  const r = 28;
   return sheet("gloam", "front", name, [
     ring("body", body, SKIN, "contour", { shadow: true }),
     ring("vest", [
@@ -86,8 +105,8 @@ function front(name = "stand") {
     ring("footL", [[CX - 48, SOLE - 16], [CX - 58, SOLE + 4], [CX - 16, SOLE + 2], [CX - 18, SOLE - 16]], SKIN_DK),
     ring("footR", [[CX + 18, SOLE - 16], [CX + 16, SOLE + 2], [CX + 58, SOLE + 4], [CX + 48, SOLE - 16]], SKIN_DK),
     ring("head", head, SKIN, "contour", { role: "head", shadow: true }),
-    ...goggle("far", CX - 30 + (listen ? 8 : 0), eyeY, r, -2, SKIN, -0.55),
-    ...goggle("near", CX + 30 + (listen ? 8 : 0), eyeY, r, 2, SKIN, -0.55),
+    ...sleepyEye("far", CX - 30 + (listen ? 8 : 0), eyeY, 16, listen ? 0.1 : 0),
+    ...sleepyEye("near", CX + 30 + (listen ? 8 : 0), eyeY, 16, listen ? 0.1 : 0),
     ring("mouth", [
       [CX - 18, t + 162], [CX, t + 174], [CX + 18, t + 162], [CX + 10, t + 168], [CX, t + 166], [CX - 10, t + 168],
     ], MOUTH, "mouth"),
@@ -118,7 +137,7 @@ function quarter() {
       [c - 10, t + 8], [c + 40, t + 4], [c + 86, t + 50], [c + 96, t + 120],
       [c + 70, t + 180], [c + 24, t + 206], [c - 20, t + 190], [c - 56, t + 140], [c - 50, t + 50],
     ], SKIN, "contour", { role: "head", shadow: true }),
-    ...goggle("near", c + 36, t + 112, 26, 2, SKIN, -0.55),
+    ...sleepyEye("near", c + 36, t + 112, 15, 0),
     ring("mouth", [[c + 10, t + 168], [c + 36, t + 178], [c + 52, t + 166], [c + 30, t + 170]], MOUTH, "mouth"),
   ], [[c + 24, SOLE]], TOP, t + 206);
 }
@@ -144,7 +163,7 @@ function profile() {
       [c - 16, t + 16], [c + 20, t + 6], [c + 48, t + 50], [c + 52, t + 120],
       [c + 70, t + 160], [c + 36, t + 196], [c, t + 204], [c - 36, t + 160], [c - 40, t + 70],
     ], SKIN, "contour", { role: "head", shadow: true }),
-    ...goggle("near", c + 22, t + 108, 22, 2, SKIN, -0.55),
+    ...sleepyEye("near", c + 22, t + 108, 14, 0),
     ring("mouth", [[c + 16, t + 168], [c + 40, t + 176], [c + 48, t + 166]], MOUTH, "mouth"),
   ], [[c + 16, SOLE]], TOP, t + 204);
 }

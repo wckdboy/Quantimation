@@ -31,37 +31,31 @@ const Y = {
 };
 
 function sideHand(id, x, y, pose, flip = false) {
-  // Palm mass, thumb on the body side, and three fingers cut deep enough to read.
+  // Wrist to fingertip matches the face from chin to mid-forehead. Fingers stay grouped.
   const sign = flip ? -1 : 1;
   const px = (dx, dy) => [x + sign * dx, y + dy];
   const relaxed = [
-    px(8, 0), px(-4, 10), px(-16, 26), px(-34, 36), px(-40, 52), px(-22, 48), px(-12, 32),
-    px(-20, 58), px(-28, 96), px(-12, 100), px(-4, 62),
-    px(2, 58), px(-2, 100), px(14, 104), px(16, 60),
-    px(22, 56), px(20, 96), px(36, 90), px(34, 48),
-    px(28, 22), px(14, 4),
+    px(2, 0), px(-8, 6), px(-12, 18), px(-14, 30), px(-6, 28),
+    px(-6, 42), px(0, 68), px(8, 70), px(10, 64),
+    px(14, 68), px(16, 48), px(12, 24),
+    px(8, 10), px(3, 1),
   ];
   const grip = [
-    px(8, 0), px(-6, 14), px(-20, 24), px(-42, 32), px(-48, 52), px(-24, 44), px(-12, 28),
-    px(-22, 40), px(-30, 86), px(-10, 90), px(0, 42),
-    px(4, 38), px(2, 88), px(18, 84), px(18, 36),
-    px(24, 32), px(36, 48), px(28, 16), px(10, 2),
+    px(2, 0), px(-8, 8), px(-12, 20), px(-14, 32), px(-6, 28),
+    px(-4, 40), px(2, 56), px(10, 54), px(10, 36),
+    px(14, 46), px(16, 30), px(10, 12), px(3, 1),
   ];
   const open = [
-    px(4, 0), px(-12, 12), px(-28, 24), px(-46, 30), px(-50, 48), px(-28, 44), px(-14, 28),
-    px(-30, 52), px(-36, 100), px(-18, 106), px(-8, 54),
-    px(0, 50), px(-4, 108), px(14, 112), px(16, 52),
-    px(22, 48), px(18, 104), px(36, 96), px(34, 40),
-    px(30, 18), px(12, 4),
+    px(2, 0), px(-8, 6), px(-14, 18), px(-16, 32), px(-6, 28),
+    px(-8, 44), px(-2, 70), px(6, 72), px(8, 66),
+    px(12, 70), px(16, 52), px(12, 24),
+    px(8, 10), px(3, 1),
   ];
   const poses = { grip, open, relaxed };
-  const seam = (pose === "grip"
-    ? [px(-14, 34), px(-6, 62), px(8, 32), px(14, 58)]
-    : [px(-16, 52), px(-14, 92), px(6, 50), px(8, 96), px(24, 48), px(26, 88)]
-  );
-  const thumb = pose === "open"
-    ? [px(-26, 26), px(-46, 36), px(-24, 48)]
-    : [px(-14, 24), px(-36, 40), px(-14, 50)];
+  const seam = pose === "grip"
+    ? [px(0, 30), px(4, 50), px(10, 28)]
+    : [px(2, 40), px(6, 64), px(12, 38)];
+  const thumb = [px(-12, 16), px(-18, 30), px(-8, 34)];
   return [
     ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" }),
     ring(`${id}Thumb`, thumb, "none", "interior", { open: true }),

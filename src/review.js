@@ -160,6 +160,13 @@ function modelFlags(actor, pose, canvas) {
     const face = head ? pathBox(head.path) : null;
     const jaw = face ? face.y0 + (face.y1 - face.y0) * 0.72 : 0;
     if (!box || !face || box.y1 < jaw) flags.push(`dot-bob ${box ? Math.round(box.y1) : "missing"}`);
+    const faceLen = face ? (face.y1 - face.y0) * 0.62 : 0;
+    for (const shape of art.shapes) {
+      if (shape.role !== "hand") continue;
+      const hand = pathBox(shape.path);
+      const span = hand.y1 - hand.y0;
+      if (faceLen && span > faceLen * 1.08) flags.push(`dot-hand ${shape.id} ${Math.round(span)}/${Math.round(faceLen)}`);
+    }
     flags.push(...shoulderRoot(art));
     if (pose.drawing === "gesture") {
       const hand = art.shapes.find((shape) => shape.id === "handB");
