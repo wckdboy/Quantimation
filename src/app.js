@@ -10,6 +10,7 @@ import {
 } from "./model.js";
 import { renderFrame, renderAsset, renderOnionSkin } from "./renderer.js";
 import { applyIk, applyLipsync, applyPose, inbetweenDrawings, reportMotion, setGesture } from "./directing.js";
+import { authorDrawing } from "./drawings.js";
 import { auditProduction, summarizeRender } from "./quality.js";
 import { soundBuffer } from "./sound.js";
 import { subtitlesSrt } from "./captions.js";
@@ -1652,6 +1653,18 @@ if (bridge?.onMcpRequest)
       else if (c.action === "solve_ik")
         result = mutation(() => {
           applyIk(episode, c);
+        });
+      else if (c.action === "author_drawing")
+        result = authorDrawing({
+          character: c.character,
+          view: c.view,
+          pose: c.pose,
+          shapes: c.shapes,
+          feet: c.feet,
+          crown: c.crown,
+          chin: c.chin,
+          width: c.width,
+          height: c.height,
         });
       else if (c.action === "set_gesture")
         result = mutation(() =>

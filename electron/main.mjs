@@ -263,6 +263,7 @@ async function dispatch(command) {
       "onion_skin",
       "motion_report",
       "set_gesture",
+      "author_drawing",
       "inbetween_drawings",
       "check_scale",
       "check_model",

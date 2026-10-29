@@ -47,6 +47,22 @@ test("page four stores redrawn keys for a walk, a seat, and a gripped prop", () 
   assert.ok(teo.drawingKeys.some((key) => key.lHip > -8 && key.t > teo.drawingKeys.find((seat) => seat.lHip < -40).t));
 });
 
+test("Teo's model sheet is smooth Bézier keys that morph", () => {
+  const front = drawCharacter("teo", { view: "front", drawing: "stand" });
+  const quarter = drawCharacter("teo", { view: "threeQuarter", drawing: "stand" });
+  const profile = drawCharacter("teo", { view: "profile", drawing: "stand" });
+  for (const art of [front, quarter, profile]) {
+    assert.ok(art.shapes.every((shape) => shape.type === "path" && /[CcQq]/.test(shape.path)));
+    assert.equal(art.shapes.some((shape) => shape.type === "polygon" || shape.type === "ellipse"), false);
+  }
+  assert.equal(front.metrics.handLoops, 2);
+  assert.equal(profile.metrics.handLoops, 1);
+  assert.notEqual(front.shapes.find((shape) => shape.role === "head").path, profile.shapes.find((shape) => shape.role === "head").path);
+  const mid = drawCharacter("teo", { view: "threeQuarter", drawing: "stand", drawingTo: "contactL", drawU: 0.5 });
+  assert.notEqual(mid.shapes.find((shape) => shape.id === "pantsF").path, quarter.shapes.find((shape) => shape.id === "pantsF").path);
+  assert.match(mid.shapes.find((shape) => shape.id === "pantsF").path, /C/);
+});
+
 test("construction keeps inner lines, a real turn, and a low lens converges", () => {
   const front = drawCharacter("dot", { view: "front" });
   const quarter = drawCharacter("dot", { view: "threeQuarter" });

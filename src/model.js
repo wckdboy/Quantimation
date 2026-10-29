@@ -297,7 +297,7 @@ export function validateEpisode(e) {
           const drawing = { t: num(key.t ?? 0, "drawing time", 0, duration) };
           for (const field of [
             "lean", "weight", "squash", "headTilt", "lShoulder", "lElbow", "rShoulder", "rElbow",
-            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "wx", "wz", "facing", "arc", "pitch", "blink", "plantL", "plantR",
+            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "wx", "wz", "facing", "arc", "pitch", "blink", "plantL", "plantR", "drawU",
           ]) {
             if (key[field] !== undefined) drawing[field] = num(key[field], field, -400, 4000);
           }
@@ -319,6 +319,8 @@ export function validateEpisode(e) {
             drawing.viseme = key.viseme;
           }
           if (key.prop) drawing.prop = str(key.prop, "prop", 40);
+          if (key.drawing) drawing.drawing = str(key.drawing, "drawing", 40);
+          if (key.drawingTo) drawing.drawingTo = str(key.drawingTo, "drawing", 40);
           if (key.character) drawing.character = id(key.character);
           return drawing;
         });

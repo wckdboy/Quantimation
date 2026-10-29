@@ -2,6 +2,7 @@
 // from the head, rib cage, pelvis and tapered limbs. Holds repeat a drawing.
 // Twos advance the drawing every second frame.
 import { constructCharacter } from "./construct.js";
+import { posedDrawing } from "./drawings.js";
 
 const SUP = 2;
 
@@ -158,6 +159,16 @@ function poseAt(keys, t) {
   pose.prop = u < 0.5 ? a.prop || "" : b.prop || a.prop || "";
   pose.facing = u < 0.5 ? a.facing ?? 1 : b.facing ?? a.facing ?? 1;
   pose.character = a.character || id;
+  const drawingA = a.drawing || "";
+  const drawingB = b.drawing || drawingA;
+  pose.drawing = drawingA;
+  pose.drawingTo = drawingB;
+  if (drawingA && drawingB && drawingA !== drawingB) pose.drawU = u;
+  else if (typeof a.drawU === "number" || typeof b.drawU === "number") {
+    const from = typeof a.drawU === "number" ? a.drawU : 0;
+    const to = typeof b.drawU === "number" ? b.drawU : from;
+    pose.drawU = from + (to - from) * u;
+  } else pose.drawU = 0;
   const bow = Math.sin(u * Math.PI) * (b.arc || a.arc || 0);
   pose.groundX += bow;
   pose.wx += bow * 0.35;
@@ -831,6 +842,29 @@ export function drawCharacter(characterId = "dot", pose = {}) {
     Math.round(normal.blink * 4), Math.round(normal.hairLag * 4), Math.round(normal.clothLag * 4), Math.round(normal.beardLag * 4),
     Math.round(normal.plantL * 4), Math.round(normal.plantR * 4),
   ]);
+  const authored = posedDrawing(id, normal.view, normal.drawing || "stand", normal.drawingTo, normal.drawU || 0);
+  if (authored) {
+    const footY = Math.max(...(authored.feet || [[0, authored.height || 0]]).map((foot) => foot[1]));
+    const crown = authored.crown ?? 40;
+    const chin = authored.chin ?? crown + 80;
+    const hands = authored.shapes.filter((shape) => shape.role === "hand").length;
+    return {
+      width: authored.width || 560,
+      height: footY + 4,
+      shapes: authored.shapes.map((shape) => ({ ...shape, type: "path", strokeWidth: 0, seed: (shape.seed || 1) + normal.boil })),
+      metrics: {
+        heads: MODELS[id].heads,
+        measuredHeads: (footY - crown) / Math.max(24, chin - crown),
+        volume: 90000,
+        handLoops: hands,
+        jacketLoops: 1,
+        com: [(authored.width || 560) / 2, (chin + footY) / 2],
+        feet: authored.feet || [[authored.width / 2, footY]],
+        height: footY - crown,
+        span: footY - crown,
+      },
+    };
+  }
   let built = cache.get(key);
   if (!built) {
     built = constructCharacter(id, normal, MODELS[id]);

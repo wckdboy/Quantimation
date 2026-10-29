@@ -385,6 +385,29 @@ function boundCues(cues) {
     "export_episode",
   );
   tool(
+    "author_drawing",
+    "Store a key drawing for a character, view and pose. Contours must be smooth cubic or quadratic SVG paths, one closed shape per form. This is the model sheet, not a polygon rig.",
+    {
+      character: z.string().min(1).max(40),
+      view: z.enum(["front", "threeQuarter", "profile", "back"]),
+      pose: z.string().min(1).max(40).default("stand"),
+      width: z.number().min(40).max(2000).optional(),
+      height: z.number().min(40).max(2000).optional(),
+      crown: z.number().optional(),
+      chin: z.number().optional(),
+      feet: z.array(z.array(z.number()).length(2)).max(4).optional(),
+      shapes: z.array(z.object({
+        id: z.string().min(1).max(40),
+        path: z.string().min(8).max(20000),
+        fill: z.string().max(20).optional(),
+        stroke: z.string().max(20).optional(),
+        line: z.string().max(20).optional(),
+        role: z.string().max(20).optional(),
+      })).min(1).max(48),
+    },
+    "author_drawing",
+  );
+  tool(
     "set_gesture",
     "Author a drawn key pose for a character. The pose is construction (lean, weight, limb angles, hand drawing, prop grip), not a cut-out transform. Timing stays on twos unless the actor is set to ones.",
     {
