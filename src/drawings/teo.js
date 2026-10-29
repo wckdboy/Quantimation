@@ -263,17 +263,17 @@ function torsoFront() {
   const s = Y.shoulder;
   return [
     ring("sleeveL", [
-      [CX - 58, s + 12], [CX - 74, s + 8], [CX - 78, s + 34], [CX - 70, s + 64],
-      [CX - 66, s + 136], [CX - 52, s + 144], [CX - 60, s + 66], [CX - 48, s + 20],
+      [CX - 48, s + 18], [CX - 58, s + 16], [CX - 60, s + 48], [CX - 54, s + 90],
+      [CX - 50, s + 140], [CX - 38, s + 146], [CX - 46, s + 80], [CX - 40, s + 26],
     ], SHIRT),
-    ring("foldL", [[CX - 90, s + 40], [CX - 78, s + 54], [CX - 86, s + 66]], "none", "interior", { open: true }),
-    ring("cuffL", [[CX - 96, s + 136], [CX - 76, s + 140], [CX - 78, s + 154], [CX - 98, s + 150]], SHIRT, "interior", { open: true }),
+    ring("foldL", [[CX - 56, s + 52], [CX - 48, s + 64], [CX - 54, s + 76]], "none", "interior", { open: true }),
+    ring("cuffL", [[CX - 52, s + 132], [CX - 40, s + 134], [CX - 40, s + 144], [CX - 52, s + 142]], SHIRT),
     ring("sleeveR", [
-      [CX + 58, s + 14], [CX + 74, s + 10], [CX + 78, s + 36], [CX + 70, s + 66],
-      [CX + 66, s + 138], [CX + 52, s + 146], [CX + 60, s + 68], [CX + 48, s + 22],
+      [CX + 48, s + 18], [CX + 58, s + 16], [CX + 60, s + 48], [CX + 54, s + 90],
+      [CX + 50, s + 140], [CX + 38, s + 146], [CX + 46, s + 80], [CX + 40, s + 26],
     ], SHIRT),
-    ring("foldR", [[CX + 92, s + 42], [CX + 80, s + 56], [CX + 88, s + 68]], "none", "interior", { open: true }),
-    ring("cuffR", [[CX + 94, s + 138], [CX + 74, s + 142], [CX + 76, s + 156], [CX + 96, s + 152]], SHIRT, "interior", { open: true }),
+    ring("foldR", [[CX + 56, s + 52], [CX + 48, s + 64], [CX + 54, s + 76]], "none", "interior", { open: true }),
+    ring("cuffR", [[CX + 40, s + 132], [CX + 52, s + 134], [CX + 52, s + 144], [CX + 40, s + 142]], SHIRT),
     ring("shirt", [
       [CX - 70, s + 16], [CX - 28, s + 4], [CX, s], [CX + 28, s + 4], [CX + 70, s + 16],
       [CX + 74, Y.waist - 28], [CX + 52, Y.waist + 10], [CX - 52, Y.waist + 12], [CX - 74, Y.waist - 26],
@@ -327,11 +327,11 @@ function frontStand() {
     ...leg("legL", -1),
     ...leg("legR", 1),
     ...torsoFront(),
-    hand("handL", [CX - 60, Y.shoulder + 142], "relaxed"),
-    hand("handR", [CX + 60, Y.shoulder + 142], "relaxed"),
+    hand("handL", [CX - 46, Y.shoulder + 140], "relaxed"),
+    hand("handR", [CX + 46, Y.shoulder + 140], "relaxed"),
     ring("neck", [
-      [CX - 22, Y.chin - 6], [CX, Y.chin - 12], [CX + 22, Y.chin - 6],
-      [CX + 28, Y.shoulder + 8], [CX - 28, Y.shoulder + 8],
+      [CX - 14, Y.chin - 2], [CX, Y.chin - 8], [CX + 14, Y.chin - 2],
+      [CX + 18, Y.shoulder + 10], [CX - 18, Y.shoulder + 10],
     ], SKIN),
     ring("crotch", [[CX, Y.crotch - 6], [CX, Y.crotch + 28]], "none", "interior", { open: true }),
     ...frontHead(),
@@ -388,10 +388,10 @@ function quarterStand() {
     ...leg("legL", -1),
     ...leg("legR", 1),
     ...torsoFront(),
-    hand("handL", [CX - 60, Y.shoulder + 142], "relaxed"),
-    hand("handR", [CX + 60, Y.shoulder + 142], "relaxed"),
+    hand("handL", [CX - 46, Y.shoulder + 140], "relaxed"),
+    hand("handR", [CX + 46, Y.shoulder + 140], "relaxed"),
     ring("neck", [
-      [CX - 16, Y.chin - 4], [CX + 18, Y.chin - 8], [CX + 28, Y.shoulder + 6], [CX - 24, Y.shoulder + 8],
+      [CX - 12, Y.chin - 2], [CX + 14, Y.chin - 6], [CX + 18, Y.shoulder + 8], [CX - 16, Y.shoulder + 10],
     ], SKIN),
     ...quarterHead(),
   ], [[CX - 58, Y.sole], [CX + 58, Y.sole]]);
@@ -477,19 +477,17 @@ function profileBody(dy, legF, legB, arm) {
     ], BOOT),
     ring("shirt", chest, SHIRT, "contour", { shadow: true }),
     ring("bib", [
-      [298, Y.shoulder + dy + 22],
-      [324, Y.shoulder + dy + 18],
-      [330, Y.waist + dy - 16],
-      [322, Y.waist + dy + 2],
-      [296, Y.waist + dy],
-      [294, Y.shoulder + dy + 36],
+      [306, Y.shoulder + dy + 20],
+      [324, Y.shoulder + dy + 16],
+      [326, Y.waist + dy - 18],
+      [308, Y.waist + dy - 14],
     ], OVERALL),
     ring("hip", [
-      [246, Y.waist + dy - 6],
-      [344, Y.waist + dy - 2],
-      [352, hip + 10],
-      [300, hip + 22],
-      [240, hip + 12],
+      [252, Y.waist + dy + 2],
+      [332, Y.waist + dy - 2],
+      [328, hip + 6],
+      [292, hip + 12],
+      [250, hip + 4],
     ], OVERALL, "contour", { shadow: true }),
     ring("strap", [[296, Y.shoulder + dy + 18], [304, Y.shoulder + dy - 2], [318, Y.shoulder + dy + 4], [312, Y.waist + dy - 20]], OVERALL),
     ring("sleeve", [
@@ -551,57 +549,58 @@ function walk() {
 }
 
 function seated(name, talking) {
-  const handR = talking ? [440, 424] : [424, 560];
   const poseR = talking ? "open" : "relaxed";
   const body = [
     ring("shinL", [
-      [248, 612], [276, 624], [286, 848], [252, 852], [232, 630],
+      [268, 760], [294, 772], [300, 848], [268, 852], [250, 778],
     ], OVERALL, "contour", { shadow: true }),
-    ring("bootL", [[244, 836], [232, 864], [250, 888], [320, 884], [316, 846], [280, 830]], BOOT),
+    ring("bootL", [[258, 834], [246, 862], [264, 888], [332, 884], [328, 844], [294, 828]], BOOT),
     ring("shinR", [
-      [470, 600], [498, 612], [508, 846], [474, 852], [452, 620],
+      [455, 752], [482, 764], [490, 846], [458, 852], [438, 772],
     ], OVERALL),
-    ring("bootR", [[466, 834], [456, 862], [478, 888], [548, 882], [544, 844], [500, 828]], BOOT),
+    ring("bootR", [[448, 832], [438, 860], [458, 888], [524, 882], [520, 842], [480, 826]], BOOT),
     ring("thighL", [
-      [332, 520], [280, 536], [246, 590], [248, 624], [284, 632], [320, 590], [352, 540],
+      [348, 718], [300, 730], [262, 756], [268, 786], [302, 794], [340, 758], [364, 734],
     ], OVERALL, "contour", { shadow: true }),
     ring("thighR", [
-      [380, 516], [440, 528], [486, 578], [498, 612], [460, 624], [420, 580], [372, 538],
+      [392, 714], [450, 724], [488, 752], [482, 784], [446, 792], [404, 756], [378, 730],
     ], OVERALL, "contour", { shadow: true }),
-    ring("kneeL", [[258, 598], [276, 616], [264, 628]], "none", "interior", { open: true }),
-    ring("kneeR", [[472, 586], [490, 604], [476, 618]], "none", "interior", { open: true }),
+    ring("kneeL", [[274, 748], [292, 764], [280, 776]], "none", "interior", { open: true }),
+    ring("kneeR", [[462, 740], [480, 756], [466, 770]], "none", "interior", { open: true }),
     ring("shirt", [
-      [318, 392], [360, 378], [404, 390], [412, 470], [392, 548], [336, 552], [312, 470],
+      [330, 560], [368, 548], [406, 558], [412, 640], [396, 736], [344, 740], [324, 640],
     ], SHIRT, "contour", { shadow: true }),
-    ring("collar", [[348, 386], [364, 408], [382, 384]], "none", "interior", { open: true }),
-    ring("bib", [[344, 418], [392, 416], [386, 520], [338, 524]], OVERALL),
-    ring("strapL", [[348, 422], [334, 392], [352, 380], [360, 420]], OVERALL),
-    ring("strapR", [[388, 420], [404, 388], [384, 378], [376, 418]], OVERALL),
-    ring("sleeveL", [[328, 404], [300, 436], [292, 500], [310, 512], [332, 456], [346, 414]], SHIRT),
+    ring("collar", [[356, 556], [372, 578], [388, 554]], "none", "interior", { open: true }),
+    ring("bib", [[350, 590], [394, 588], [388, 708], [346, 712]], OVERALL),
+    ring("strapL", [[354, 594], [342, 564], [358, 552], [366, 592]], OVERALL),
+    ring("strapR", [[390, 592], [404, 562], [386, 550], [378, 590]], OVERALL),
+    ring("sleeveL", [
+      [358, 574], [342, 630], [324, 692], [342, 708], [358, 676], [370, 620], [374, 580],
+    ], SHIRT),
     ring("sleeveR", talking
-      ? [[392, 400], [424, 368], [448, 392], [436, 428], [412, 412], [388, 408]]
-      : [[392, 402], [424, 440], [432, 520], [414, 532], [396, 470], [380, 414]], SHIRT),
-    hand("handL", [300, 508], "relaxed"),
-    hand("handR", handR, poseR),
-    ring("neck", [[348, 352], [376, 348], [384, 392], [344, 396]], SKIN),
-    disc("curl0", 318, 236, 13, HAIR),
-    disc("curl1", 346, 220, 16, HAIR),
-    disc("curl2", 376, 224, 15, HAIR),
-    disc("curl3", 400, 246, 12, HAIR),
+      ? [[404, 564], [456, 512], [512, 488], [528, 516], [496, 536], [444, 552], [400, 576]]
+      : [[382, 574], [398, 630], [416, 692], [398, 708], [382, 676], [370, 620], [366, 580]], SHIRT),
+    hand("handL", [318, 684], "relaxed"),
+    hand("handR", talking ? [516, 496] : [410, 684], poseR),
+    ring("neck", [[356, 520], [384, 516], [390, 560], [352, 564]], SKIN),
+    disc("curl0", 330, 400, 13, HAIR),
+    disc("curl1", 358, 384, 16, HAIR),
+    disc("curl2", 388, 388, 15, HAIR),
+    disc("curl3", 412, 410, 12, HAIR),
     ring("head", [
-      [332, 228], [364, 220], [396, 242], [408, 286], [418, 314], [404, 338],
-      [388, 352], [360, 360], [336, 348], [318, 318], [314, 276], [318, 246],
+      [344, 392], [376, 384], [408, 406], [420, 450], [430, 478], [416, 502],
+      [400, 516], [372, 524], [348, 512], [330, 482], [326, 440], [330, 410],
     ], SKIN, "contour", { role: "head" }),
     ring("beard", [
-      [322, 300], [316, 332], [334, 356], [360, 364], [388, 352], [404, 328],
-      [392, 316], [364, 332], [338, 324],
+      [334, 464], [328, 496], [346, 520], [372, 528], [400, 516], [416, 492],
+      [404, 480], [376, 496], [350, 488],
     ], HAIR, "contour", { role: "beard" }),
-    ...goggle("far", 348, 286, 15, 0),
-    ...goggle("near", 384, 290, 18, 1),
-    ring("noseBreak", [[400, 316], [412, 326], [396, 334]], "none", "interior", { open: true }),
-    ring("mouth", [[366, 332], [384, 338], [396, 330]], "none", "mouth", { open: true, line: "mouth" }),
+    ...goggle("far", 360, 450, 15, 0),
+    ...goggle("near", 396, 454, 18, 1),
+    ring("noseBreak", [[412, 480], [424, 490], [408, 498]], "none", "interior", { open: true }),
+    ring("mouth", [[378, 496], [396, 502], [408, 494]], "none", "mouth", { open: true, line: "mouth" }),
   ];
-  return sheet("threeQuarter", name, body, [[270, 888], [510, 888]], 220, 360);
+  return sheet("threeQuarter", name, body, [[280, 888], [490, 888]], 384, 524);
 }
 
 function chairAndSit() {

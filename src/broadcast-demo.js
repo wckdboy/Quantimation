@@ -91,7 +91,7 @@ export function kitchenEpisode({
             timing: "twos",
             drawingKeys: performance("dot", Array.from({ length: Math.ceil(duration / 1.6) + 1 }, (_, i) => {
               const t = Math.min(duration - 0.05, i * 1.6);
-              const mode = ["stand", "look", "gesture", "look"][i % 4];
+              const mode = ["look", "gesture", "stand", "gesture"][i % 4];
               const back = t >= teoAt && t < teoAt + 1.5;
               return {
                 t,
@@ -121,11 +121,11 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("teo", [
-              { t: 0, view: "profile", drawing: "contact", depth: 0.66, groundX: 980, lHip: 26, lean: 4, plantL: 0, plantR: 0 },
-              { t: 0.5, view: "profile", drawing: "down", depth: 0.32, groundX: 820, lHip: 8, lean: -3, plantL: 0, plantR: 0 },
-              { t: 1, view: "profile", drawing: "pass", depth: 0.22, groundX: 740, lHip: -6, headTilt: 3, plantL: 0, plantR: 0 },
-              { t: 1.6, view: "profile", drawing: "up", depth: 0.14, groundX: 680, lHip: 4, lean: 2, plantL: 0, plantR: 0 },
-              { t: 2.2, view: "threeQuarter", drawing: "stand", depth: 0.08, groundX: 700, lHip: 2, lean: -5, weight: -0.25, headTilt: 5, plantL: 1, plantR: 1 },
+              { t: 0, view: "profile", drawing: "contact", depth: 0.2, groundX: 520, lHip: 26, lean: 4, plantL: 0, plantR: 0 },
+              { t: 0.5, view: "profile", drawing: "down", depth: 0.16, groundX: 590, lHip: 8, lean: -3, plantL: 0, plantR: 0 },
+              { t: 1, view: "profile", drawing: "pass", depth: 0.13, groundX: 650, lHip: -6, headTilt: 3, plantL: 0, plantR: 0 },
+              { t: 1.6, view: "profile", drawing: "up", depth: 0.1, groundX: 700, lHip: 4, lean: 2, plantL: 0, plantR: 0 },
+              { t: 2.2, view: "threeQuarter", drawing: "stand", depth: 0.08, groundX: 710, lHip: 2, lean: -5, weight: -0.25, headTilt: 5, plantL: 1, plantR: 1 },
               { t: 3.6, view: "threeQuarter", drawing: "stand", depth: 0.08, groundX: 680, lHip: 2, lean: 6, weight: 0.4, headTilt: -6, plantL: 1, plantR: 1 },
               ...Array.from({ length: Math.ceil((duration - 4.4) / 1.5) }, (_, i) => ({
                 t: 4.4 + i * 1.5,

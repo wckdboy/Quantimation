@@ -602,11 +602,14 @@ export function renderFrame(canvas, episode, time, options = {}) {
     ctx.rotate(rad(state.rotation + bodyLean * 0.45 + headTilt * 0.25 + (p.motion === "spin" ? poseTime * 50 : 0)));
     ctx.scale(drawScale * (p.flip ? -1 : 1) * squash.x, drawScale * squash.y);
     if (asset.kind === "character" || asset.kind === "creature") {
+      const locals = (drawnArt?.metrics?.feet || [[drawnArt?.width / 2 || 0, 0]]).map((foot) => foot[0] - (drawnArt?.width || 0) / 2);
+      const mid = locals.reduce((sum, x) => sum + x, 0) / locals.length;
+      const span = Math.max(...locals) - Math.min(...locals);
       ctx.save();
       ctx.scale(1, 1 / Math.max(0.2, drawScale));
-      ctx.fillStyle = s.contactShadow || "#898d73";
+      ctx.fillStyle = "#5C614E";
       ctx.beginPath();
-      ctx.ellipse(18, 7, 54, 9, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(mid, 3, Math.max(16, span * 0.55), 4.5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

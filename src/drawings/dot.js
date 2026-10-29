@@ -41,7 +41,13 @@ function sideHand(id, x, y, pose) {
     [x + 2, y + 46], [x + 14, y + 30], [x + 16, y + 48], [x + 26, y + 28],
     [x + 20, y + 10], [x + 30, y + 16], [x + 24, y + 2], [x + 10, y],
   ];
-  return ring(id, pose === "grip" ? grip : relaxed, SKIN, "contour", { role: "hand" });
+  const open = [
+    [x, y], [x - 28, y + 8], [x - 46, y + 28], [x - 36, y + 40],
+    [x - 18, y + 22], [x - 22, y + 48], [x - 8, y + 52], [x - 4, y + 24],
+    [x + 8, y + 50], [x + 22, y + 42], [x + 12, y + 18], [x + 24, y + 8],
+  ];
+  const poses = { grip, open, relaxed };
+  return ring(id, poses[pose] || relaxed, SKIN, "contour", { role: "hand" });
 }
 
 function tablet(id, x, y, w, h) {
@@ -158,7 +164,10 @@ function quarterPose(name, mode) {
     ring("shirt", [[c + 8, s + 4], [c + 28, s - 2], [c + 24, Y.waist - 20], [c + 4, Y.waist - 12]], SHIRT),
     ring("lapel", [[c + 10, s], [c + 22, Y.waist - 24], [c + 6, Y.waist - 16]], "none", "interior", { open: true }),
     ring("neck", [[c - 4, Y.chin - 2], [c + 28, Y.chin + 4], [c + 24, s + 8], [c - 8, s + 4]], SKIN),
-    sideHand("handB", gesture ? c - 36 : c - 78, gesture ? s + 64 : s + 150, gesture ? "open" : "relaxed"),
+    ring("armB", gesture
+      ? [[c - 62, s + 16], [c - 120, s - 10], [c - 168, s + 18], [c - 156, s + 48], [c - 108, s + 28], [c - 58, s + 36]]
+      : [[c - 58, s + 20], [c - 82, s + 48], [c - 88, s + 120], [c - 70, s + 138], [c - 58, s + 70], [c - 46, s + 32]], BLAZER),
+    sideHand("handB", gesture ? c - 168 : c - 80, gesture ? s + 28 : s + 132, gesture ? "open" : "relaxed"),
     ...tablet("pad", c + 28, s + 108, 46, 64),
     sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [

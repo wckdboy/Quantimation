@@ -40,7 +40,8 @@ test("page four stores redrawn keys for a walk, a seat, and a gripped prop", () 
   const teo = scene.instances.find((actor) => actor.id === "teo");
   const dot = scene.instances.find((actor) => actor.id === "dot");
   assert.ok(teo.drawingKeys.length > 8);
-  assert.ok(teo.drawingKeys.some((key) => key.depth > 0.6));
+  assert.ok(teo.drawingKeys.some((key) => key.depth >= 0.18 && key.depth <= 0.28));
+  assert.ok(teo.drawingKeys.some((key) => key.depth <= 0.1));
   assert.ok(teo.drawingKeys.some((key) => key.lHip < -40));
   assert.equal(dot.drawingKeys[0].prop, "tablet");
   assert.equal(dot.drawingKeys[0].handL, "grip");

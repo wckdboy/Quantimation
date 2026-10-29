@@ -97,17 +97,18 @@ function layer(id, parallax, children) {
 function floorGrid(cam, x0, x1, z1, fillA, fillB) {
   const cols = 8;
   const rows = 5;
+  const zNear = Math.min(z1, 210);
   const shapes = [];
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
-      const za = (z1 * row) / rows;
-      const zb = (z1 * (row + 1)) / rows;
+      const za = (zNear * row) / rows;
+      const zb = (zNear * (row + 1)) / rows;
       const xa = x0 + ((x1 - x0) * col) / cols;
       const xb = x0 + ((x1 - x0) * (col + 1)) / cols;
       const near = row / Math.max(1, rows - 1);
       const dark = (hex) => {
         const n = Number.parseInt(hex.slice(1), 16);
-        const f = (c) => Math.max(0, Math.min(255, Math.round(c - near * 38)));
+        const f = (c) => Math.max(0, Math.min(255, Math.round(c - near * 48)));
         return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
       };
       shapes.push(worldFace(
@@ -118,6 +119,14 @@ function floorGrid(cam, x0, x1, z1, fillA, fillB) {
       ));
     }
   }
+  for (let row = 1; row < rows; row += 1) {
+    const z = (zNear * row) / rows;
+    shapes.push(worldFace(cam, `groutH${row}`, [[x0, 0.8, z], [x1, 0.8, z]], "none", "bgDetail", true));
+  }
+  for (let col = 1; col < cols; col += 1) {
+    const x = x0 + ((x1 - x0) * col) / cols;
+    shapes.push(worldFace(cam, `groutV${col}`, [[x, 0.8, 0], [x, 0.8, zNear]], "none", "bgDetail", true));
+  }
   return shapes;
 }
 
@@ -127,8 +136,8 @@ function kitchen(cam) {
   const cabSide = "#738566";
   const counter = "#E8DCC0";
   const counterSide = "#D4C6A8";
-  const floorA = "#CBD0B0";
-  const floorB = "#E3DDC4";
+  const floorA = "#C5CBA6";
+  const floorB = "#F3ECD8";
   const sky = "#BFDCE6";
   const hedge = "#6E8A62";
   const wood = "#8B5E3C";
@@ -155,6 +164,14 @@ function kitchen(cam) {
     worldFace(cam, "houseDoor", [[-172, 146, 3], [-162, 146, 3], [-162, 128, 3], [-172, 128, 3]], "#6A4328", "bgDetail"),
     worldFace(cam, "house2", [[-140, 160, 2], [-112, 160, 2], [-112, 128, 2], [-140, 128, 2]], "#E4D2BE", "bg"),
     worldFace(cam, "roof2", [[-146, 160, 2], [-126, 176, 2], [-106, 160, 2]], "#A86B52", "bg"),
+    worldFace(cam, "chimney", [[-118, 168, 3], [-112, 168, 3], [-112, 180, 3], [-118, 180, 3]], "#8E5A4A", "bgDetail"),
+    worldFace(cam, "fence", [[-246, 132, 3], [-90, 132, 3]], "none", "bgDetail", true),
+    worldFace(cam, "fencePost", [[-230, 122, 3], [-230, 140, 3]], "none", "bgDetail", true),
+    worldFace(cam, "fencePost2", [[-170, 122, 3], [-170, 142, 3]], "none", "bgDetail", true),
+    worldFace(cam, "fencePost3", [[-120, 122, 3], [-120, 140, 3]], "none", "bgDetail", true),
+    worldFace(cam, "houseWinMuntin", [[-183, 160, 4], [-183, 146, 4]], "none", "bgDetail", true),
+    drawn(cam, "tree2", [[-100, 140, 2], [-88, 162, 2], [-76, 140, 2], [-90, 136, 2]], "#4E7A48", "bg"),
+    worldFace(cam, "road", [[-246, 124, 2], [-80, 124, 2], [-76, 118, 2], [-248, 118, 2]], "#C4B8A4", "bgFar"),
     drawn(cam, "hedge", [[-248, 140, 2], [-210, 150, 2], [-170, 142, 2], [-130, 148, 2], [-90, 136, 2], [-78, 122, 2], [-248, 122, 2]], hedge, "bg"),
     worldFace(cam, "muntinV", [[-160, 214, 3], [-160, 118, 3]], "none", "bgDetail", true),
     worldFace(cam, "muntinH", [[-250, 166, 3], [-70, 166, 3]], "none", "bgDetail", true),
@@ -180,10 +197,15 @@ function kitchen(cam) {
     ...box(cam, "stove", 20, 170, 0, 92, 0, 40, steel, "#B7B2AA"),
     worldFace(cam, "burner", [[50, 93, 22], [86, 93, 22], [82, 93, 42], [46, 93, 42]], "#6E6A66", "bgDetail"),
     worldFace(cam, "burner2", [[108, 93, 22], [144, 93, 22], [140, 93, 42], [104, 93, 42]], "#6E6A66", "bgDetail"),
-    drawn(cam, "kettle", [[-48, 94, 28], [-28, 128, 32], [-8, 126, 36], [6, 100, 40], [-6, 94, 36], [-36, 94, 30]], "#C4553A", "prop"),
-    drawn(cam, "kettleSpout", [[-8, 112, 36], [16, 118, 42], [8, 106, 40]], "#A84432", "prop"),
-    drawn(cam, "kettleHandle", [[-46, 110, 26], [-58, 118, 28], [-54, 100, 26], [-40, 104, 28]], "none", "bgDetail", true),
-    drawn(cam, "kettleLid", [[-36, 126, 32], [-16, 132, 34], [-14, 124, 36]], "#E7D3A1", "prop"),
+    drawn(cam, "kettle", [
+      [-54, 96, 30], [-50, 112, 28], [-40, 126, 30], [-22, 132, 33],
+      [-6, 126, 36], [2, 112, 38], [0, 98, 36], [-24, 94, 33], [-46, 96, 31],
+    ], "#C4553A", "prop"),
+    drawn(cam, "kettleSpout", [[-6, 116, 36], [8, 122, 40], [22, 116, 46], [10, 108, 40], [-2, 110, 36]], "#A84432", "prop"),
+    drawn(cam, "kettleHandle", [[-50, 108, 28], [-66, 116, 30], [-64, 100, 28], [-48, 104, 30]], "none", "bgDetail", true),
+    drawn(cam, "kettleLid", [[-40, 126, 31], [-22, 134, 33], [-8, 126, 36], [-24, 122, 34]], "#E7D3A1", "prop"),
+    drawn(cam, "kettleSeam", [[-42, 118, 30], [-20, 122, 33], [0, 114, 36]], "none", "bgDetail", true),
+    drawn(cam, "kettleKnob", [[-28, 132, 33], [-22, 138, 34], [-16, 132, 35]], "#C4553A", "prop"),
     drawn(cam, "mug", [[-78, 94, 44], [-62, 118, 46], [-46, 116, 50], [-48, 94, 48]], "#EDE3CC", "prop"),
     drawn(cam, "mugHandle", [[-48, 108, 50], [-36, 112, 54], [-38, 100, 52], [-50, 102, 48]], "none", "bgDetail", true),
     drawn(cam, "plate1", [[120, 96, 36], [168, 98, 36], [164, 102, 48], [124, 100, 48]], "#F4F1EA", "prop"),
@@ -194,7 +216,16 @@ function kitchen(cam) {
     drawn(cam, "leafA", [[-244, 112, 38], [-258, 136, 40], [-236, 128, 42], [-230, 114, 40]], "#3E7A48", "prop"),
     drawn(cam, "leafB", [[-228, 114, 40], [-214, 140, 44], [-206, 122, 46], [-222, 112, 42]], "#5E8A55", "prop"),
     drawn(cam, "leafC", [[-236, 116, 40], [-232, 142, 42], [-220, 132, 44]], "#2F6A40", "prop"),
-    drawn(cam, "fruit", [[-62, 96, 50], [-48, 112, 52], [-34, 100, 56], [-46, 94, 52]], "#3E8F8A", "prop"),
+    drawn(cam, "pear", [
+      [-58, 98, 48], [-64, 108, 46], [-60, 122, 48], [-48, 126, 50],
+      [-38, 118, 54], [-36, 106, 52], [-46, 98, 50],
+    ], "#6FA06A", "prop"),
+    drawn(cam, "pearStem", [[-50, 124, 49], [-46, 134, 50]], "none", "bgDetail", true),
+    drawn(cam, "apple", [
+      [-78, 100, 40], [-86, 110, 38], [-82, 122, 40], [-70, 124, 42], [-60, 114, 44], [-62, 102, 42],
+    ], "#C4553A", "prop"),
+    drawn(cam, "appleCheek", [[-76, 108, 41], [-72, 116, 42], [-66, 112, 43]], "#E7D3A1", "prop"),
+    drawn(cam, "appleStem", [[-72, 122, 41], [-68, 132, 42]], "none", "bgDetail", true),
     drawn(cam, "board", [[-90, 94, 20], [-30, 94, 20], [-26, 98, 34], [-94, 98, 34]], "#E7D3A8", "prop"),
     drawn(cam, "jar", [[140, 96, 28], [158, 100, 30], [154, 124, 34], [138, 118, 32]], "#E6EFEA", "prop"),
     worldFace(cam, "picture", [[150, 250, 1], [210, 250, 1], [210, 200, 1], [150, 200, 1]], "#F3E7C8", "bgDetail"),
@@ -207,17 +238,18 @@ function kitchen(cam) {
     drawn(cam, "lampCord", [[2, 268, 24], [0, 230, 28], [-2, 206, 32]], "none", "bgDetail", true),
     drawn(cam, "lampShade", [[-18, 206, 30], [22, 206, 30], [14, 184, 34], [-10, 184, 34]], "#E7D3A1", "prop"),
     drawn(cam, "lampGlow", [[-8, 186, 32], [10, 186, 32], [6, 176, 34], [-4, 176, 34]], "#F6E7A2", "bgFar"),
-    drawn(cam, "trash", [[248, 0, 160], [292, 0, 160], [286, 34, 156], [254, 34, 156]], "#8A847C", "prop"),
-    drawn(cam, "trashRim", [[246, 32, 158], [294, 32, 158], [290, 38, 154], [250, 38, 154]], "#6E6A64", "prop"),
+    drawn(cam, "trash", [[150, 0, 110], [190, 0, 110], [184, 32, 106], [156, 32, 106]], "#8A847C", "prop"),
+    drawn(cam, "trashRim", [[148, 30, 108], [192, 30, 108], [188, 36, 104], [152, 36, 104]], "#6E6A64", "prop"),
     ...legs(cam, "table", -210, -50, 0, 74, 48, 62, "#C48A52", woodSide),
-    worldFace(cam, "chairLeg0", [[-168, 42, 60], [-162, 42, 60], [-160, 0, 62], [-170, 0, 62]], woodSide, "prop"),
-    worldFace(cam, "chairLeg1", [[-112, 42, 60], [-106, 42, 60], [-104, 0, 62], [-114, 0, 62]], woodSide, "prop"),
-    worldFace(cam, "chairLeg2", [[-164, 42, 46], [-158, 42, 46], [-156, 0, 44], [-166, 0, 44]], woodSide, "prop"),
-    worldFace(cam, "chairLeg3", [[-108, 42, 46], [-102, 42, 46], [-100, 0, 44], [-110, 0, 44]], woodSide, "prop"),
-    worldFace(cam, "chairSeat", [[-174, 44, 44], [-100, 44, 44], [-94, 44, 64], [-180, 44, 64]], "#C48A52", "prop"),
-    worldFace(cam, "chairBackL", [[-168, 44, 46], [-160, 44, 46], [-160, 90, 46], [-168, 90, 46]], "#A56B42", "prop"),
-    worldFace(cam, "chairBackR", [[-112, 44, 46], [-104, 44, 46], [-104, 90, 46], [-112, 90, 46]], "#A56B42", "prop"),
-    worldFace(cam, "chairSlat", [[-160, 72, 46], [-112, 72, 46], [-112, 80, 46], [-160, 80, 46]], "#C48A52", "prop"),
+    worldFace(cam, "chairLeg0", [[24, 42, 72], [32, 42, 72], [34, 0, 74], [22, 0, 74]], woodSide, "prop"),
+    worldFace(cam, "chairLeg1", [[112, 42, 72], [120, 42, 72], [122, 0, 74], [110, 0, 74]], woodSide, "prop"),
+    worldFace(cam, "chairLeg2", [[28, 42, 48], [36, 42, 48], [38, 0, 46], [26, 0, 46]], woodSide, "prop"),
+    worldFace(cam, "chairLeg3", [[108, 42, 48], [116, 42, 48], [118, 0, 46], [106, 0, 46]], woodSide, "prop"),
+    worldFace(cam, "chairSeat", [[18, 44, 46], [126, 44, 46], [132, 44, 74], [12, 44, 74]], "#C48A52", "prop"),
+    worldFace(cam, "chairBackL", [[26, 44, 48], [36, 44, 48], [36, 150, 48], [26, 150, 48]], "#A56B42", "prop"),
+    worldFace(cam, "chairBackR", [[108, 44, 48], [118, 44, 48], [118, 150, 48], [108, 150, 48]], "#A56B42", "prop"),
+    worldFace(cam, "chairSlat", [[36, 118, 48], [108, 118, 48], [108, 128, 48], [36, 128, 48]], "#C48A52", "prop"),
+    worldFace(cam, "chairSlatLow", [[36, 78, 48], [108, 78, 48], [108, 86, 48], [36, 86, 48]], "#C48A52", "prop"),
   ];
   return [layer("room", 1, shapes)];
 }
@@ -293,8 +325,9 @@ function market(cam) {
 
 export const KITCHEN_LAYOUT = {
   table: { x0: -210, x1: -50, top: 74, z0: 48, z1: 62 },
-  chair: { x0: -180, x1: -94, seat: 44, z0: 44, z1: 64 },
+  chair: { x0: 12, x1: 132, seat: 44, z0: 46, z1: 74 },
   fridge: { x0: 220, x1: 320, top: 190, z0: 0, z1: 8 },
+  counter: { x0: -270, x1: 200, top: 92, z0: 0, z1: 40 },
 };
 
 export function kitchenPlate() {

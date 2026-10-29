@@ -1,14 +1,13 @@
 // Hard gate for a rendered episode. Every 12th frame has to keep the cast
 // on model, on the floor, and clear of the furniture.
 
-import { drawCharacter, groundPlacement, samplePose } from "./drawn.js";
+import { drawCharacter, groundPlacement, samplePose, MODELS } from "./drawn.js";
 import { activeShot } from "./model.js";
 import { KITCHEN_LAYOUT, LOW, EYE } from "./plates.js";
 import { drawShape, renderFrame } from "./renderer.js";
 
 const BEARD = { r: [120, 190], g: [50, 120], b: [20, 80] };
-const SHADOW = [137, 141, 115];
-const DOME = [163, 168, 136];
+const SHADOW = [92, 97, 78];
 
 function plateCam(perspective) {
   return perspective === "low" ? LOW : EYE;
@@ -87,7 +86,14 @@ function layoutPolys(perspective) {
     [fridge.x1, fridge.top, fridge.z1],
     [fridge.x0, fridge.top, fridge.z1],
   ].map(([x, y, z]) => projectPlate(cam, x, y, z));
-  return { top, seat, feet, ice };
+  const counter = KITCHEN_LAYOUT.counter;
+  const deck = [
+    [counter.x0, counter.top, counter.z0],
+    [counter.x1, counter.top, counter.z0],
+    [counter.x1, counter.top, counter.z1],
+    [counter.x0, counter.top, counter.z1],
+  ].map(([x, y, z]) => projectPlate(cam, x, y, z));
+  return { top, seat, feet, ice, deck };
 }
 
 function near(rgb, target, tol) {
@@ -133,6 +139,8 @@ function modelFlags(actor, pose, canvas) {
   const art = drawCharacter(actor.assetId, pose);
   if (pose.view === "back") return flags;
   if (actor.assetId === "teo") {
+    const drawing = String(pose.drawing || "stand");
+    if (drawing === "stand" || drawing.startsWith("sit")) flags.push(...armBow(art), ...sleeveFlare(art));
     const beard = art.shapes.find((shape) => shape.role === "beard" || shape.id === "beard");
     const sheet = drawCharacter("teo", { view: pose.view, drawing: "stand" });
     const canon = sheet.shapes.find((shape) => shape.role === "beard" || shape.id === "beard");
@@ -149,6 +157,12 @@ function modelFlags(actor, pose, canvas) {
     const face = head ? pathBox(head.path) : null;
     const jaw = face ? face.y0 + (face.y1 - face.y0) * 0.72 : 0;
     if (!box || !face || box.y1 < jaw) flags.push(`dot-bob ${box ? Math.round(box.y1) : "missing"}`);
+    if (pose.drawing === "gesture") {
+      const hand = art.shapes.find((shape) => shape.id === "handB");
+      const torso = art.shapes.find((shape) => shape.id === "blazer");
+      const reach = hand && torso ? pathBox(torso.path).x0 - pathBox(hand.path).x0 : 0;
+      if (reach < 40) flags.push(`gesture-flat ${Math.round(reach)}`);
+    }
   }
   return flags;
 }
@@ -161,12 +175,11 @@ function framePoint(px, py, shot, width, height) {
   };
 }
 
-function scanFrame(canvas, feet) {
+function scanFrame(canvas, feet, wide) {
   const flags = [];
   const { width, height } = canvas;
   const data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
-  let dome = 0;
-  const shadowXs = [];
+  const shadowPts = [];
   const y0 = Math.floor(height * 0.72);
   const x0 = Math.floor(width * 0.28);
   const x1 = Math.floor(width * 0.72);
@@ -174,31 +187,53 @@ function scanFrame(canvas, feet) {
     for (let x = x0; x < x1; x += 2) {
       const i = (y * width + x) * 4;
       const rgb = [data[i], data[i + 1], data[i + 2]];
-      if (near(rgb, DOME, 14)) dome += 4;
-      if (near(rgb, SHADOW, 8)) shadowXs.push(x);
+      if (near(rgb, SHADOW, 10)) shadowPts.push([x, y]);
     }
   }
-  if (dome > 2500) flags.push(`foreground-blob ${dome}px`);
-  if (shadowXs.length) {
-    shadowXs.sort((a, b) => a - b);
-    let start = shadowXs[0];
-    let last = shadowXs[0];
-    let count = 1;
-    const clusters = [];
-    for (const x of shadowXs.slice(1)) {
-      if (x - last > 36) {
-        clusters.push({ x: (start + last) / 2, count });
-        start = x;
-        count = 0;
+  const luma = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.3 * data[i] + 0.5 * data[i + 1] + 0.2 * data[i + 2];
+  };
+  const band = (yFrac) => {
+    let sum = 0;
+    let n = 0;
+    const y = Math.floor(height * yFrac);
+    for (let x = Math.floor(width * 0.36); x < width * 0.58; x += 3) {
+      const value = luma(x, y);
+      if (value > 140 && value < 230) {
+        sum += value;
+        n += 1;
       }
-      last = x;
-      count += 1;
     }
-    clusters.push({ x: (start + last) / 2, count });
+    return n > 8 ? sum / n : null;
+  };
+  const nearFloor = band(0.93);
+  const farFloor = band(0.8);
+  if (wide && nearFloor != null && farFloor != null && farFloor - nearFloor < 8) flags.push("flat-floor");
+  if (shadowPts.length) {
+    shadowPts.sort((a, b) => a[0] - b[0]);
+    let run = [shadowPts[0]];
+    const clusters = [];
+    for (const point of shadowPts.slice(1)) {
+      if (point[0] - run.at(-1)[0] > 36) {
+        clusters.push(run);
+        run = [];
+      }
+      run.push(point);
+    }
+    clusters.push(run);
     for (const cluster of clusters) {
-      if (cluster.count < 12) continue;
-      const nearFoot = feet.some((foot) => Math.abs(foot.sx - cluster.x) < 90);
-      if (!nearFoot) flags.push(`orphan-shadow x${Math.round(cluster.x)}`);
+      if (cluster.length < 12) continue;
+      const xs = cluster.map((point) => point[0]);
+      const ys = cluster.map((point) => point[1]);
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const tall = Math.max(...ys) - Math.min(...ys);
+      const wideShadow = Math.max(...xs) - Math.min(...xs);
+      const nearFoot = feet.some((foot) => Math.abs(foot.sx - cx) < 90);
+      if (!nearFoot && cluster.length > 40) flags.push(`orphan-shadow x${Math.round(cx)}`);
+      if (nearFoot && cluster.length > 80 && tall > 24 && wideShadow > 90) {
+        flags.push(`shadow-dome ${Math.round(wideShadow)}x${Math.round(tall)}`);
+      }
     }
   }
   return flags;
@@ -229,7 +264,10 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
       const screen = framePoint(foot[0], foot[1], shot, frame.width, frame.height);
       feet.push({ id: actor.id, x: foot[0], y: foot[1], sx: screen.x, sy: screen.y, drawing: pose.drawing || "stand" });
       if (inside(props.top, foot[0], foot[1])) flags.push(`${actor.id}-on-table`);
-      if (!String(pose.drawing || "stand").startsWith("sit") && inside(props.seat, foot[0], foot[1])) flags.push(`${actor.id}-on-chair`);
+      if (inside(props.deck, foot[0], foot[1])) flags.push(`${actor.id}-on-counter`);
+      const seated = String(pose.drawing || "stand").startsWith("sit");
+      if (!seated && inside(props.seat, foot[0], foot[1])) flags.push(`${actor.id}-on-chair`);
+      if (seated && actor.assetId === "teo") flags.push(...seatFlags(pose, place, props.seat));
       if (foot[1] < rig.horizonY + 20) flags.push(`${actor.id}-above-floor`);
     }
     const table = bounds(props.top);
@@ -237,14 +275,79 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     if (rectsOverlap(table, ice)) flags.push("table-fridge");
     const seatIn = props.seat.some(([x, y]) => x > view.left && x < view.right && y > view.top && y < view.bottom);
     const feetOut = props.feet.some(([x, y]) => x > view.left && x < view.right && y > view.bottom + 8);
-    if (seatIn && feetOut) flags.push("chair-cropped");
+    const someoneSeated = feet.some((foot) => String(foot.drawing).startsWith("sit"));
+    if (seatIn && feetOut && !someoneSeated) flags.push("chair-cropped");
     renderFrame(frame, episode, t, { ink: "broadcast", captions: false, smear: false });
-    flags.push(...scanFrame(frame, feet));
+    flags.push(...scanFrame(frame, feet, shot.label === "Wide"));
     if (flags.length) failures.push({ frame: index, t: Math.round(t * 100) / 100, flags });
   }
   const held = actingFlags(scene, fps);
   if (held.length) failures.push({ frame: 0, t: 0, flags: held });
   return { checked: indexes.length, failures };
+}
+
+function seatFlags(pose, place, seat) {
+  const art = drawCharacter("teo", pose);
+  const shirt = art.shapes.find((shape) => shape.id === "shirt");
+  if (!shirt) return ["teo-no-seat"];
+  const hip = pathBox(shirt.path);
+  const footY = Math.max(...art.metrics.feet.map((foot) => foot[1]));
+  const drawScale = place.scale * ((MODELS.teo?.world || 380) / Math.max(40, art.metrics.span));
+  const hipX = place.x + ((hip.x0 + hip.x1) / 2 - art.width / 2) * drawScale;
+  const hipY = place.y + (hip.y1 - footY) * drawScale;
+  const box = bounds(seat);
+  const gap = box.y0 - hipY;
+  if (hipX < box.x0 - 24 || hipX > box.x1 + 24 || gap < -20 || gap > 48) {
+    return [`teo-no-seat ${Math.round(hipX)},${Math.round(hipY)} gap${Math.round(gap)}`];
+  }
+  return [];
+}
+
+function armBow(art) {
+  const flags = [];
+  for (const id of ["sleeveL", "sleeveR"]) {
+    const shape = art.shapes.find((item) => item.id === id);
+    if (!shape) continue;
+    const nums = String(shape.path).match(/-?\d*\.?\d+/g)?.map(Number) || [];
+    const pts = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+    if (pts.length < 4) continue;
+    const torso = art.shapes.find((shape) => shape.id === "shirt");
+    const hip = torso ? pathBox(torso.path).y1 : Infinity;
+    const top = pts.reduce((best, point) => (point[1] < best[1] ? point : best));
+    const bottom = pts.reduce((best, point) => (point[1] > best[1] ? point : best));
+    if (bottom[1] < hip - 24) continue;
+    const dx = bottom[0] - top[0];
+    const dy = bottom[1] - top[1];
+    const len = Math.hypot(dx, dy) || 1;
+    let worst = 0;
+    for (const point of pts) {
+      const along = ((point[0] - top[0]) * dx + (point[1] - top[1]) * dy) / (len * len);
+      if (along < 0.25 || along > 0.75) continue;
+      const px = top[0] + dx * along;
+      const py = top[1] + dy * along;
+      worst = Math.max(worst, Math.hypot(point[0] - px, point[1] - py));
+    }
+    if (worst > 22) flags.push(`${id}-bow ${Math.round(worst)}`);
+  }
+  return flags;
+}
+
+function sleeveFlare(art) {
+  const torso = art.shapes.find((shape) => shape.id === "shirt");
+  if (!torso) return [];
+  const box = pathBox(torso.path);
+  const torsoH = box.y1 - box.y0;
+  const flags = [];
+  for (const id of ["sleeveL", "sleeveR"]) {
+    const shape = art.shapes.find((item) => item.id === id);
+    if (!shape) continue;
+    const sleeve = pathBox(shape.path);
+    if (sleeve.y1 - sleeve.y0 < torsoH * 0.55) continue;
+    const outside = id.endsWith("L") ? box.x0 - sleeve.x0 : sleeve.x1 - box.x1;
+    if (outside > 34) flags.push(`${id}-flare ${Math.round(outside)}`);
+  }
+  return flags;
 }
 
 function poseStamp(pose) {
