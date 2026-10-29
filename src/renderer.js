@@ -69,8 +69,8 @@ function screenWidth(px, acting) {
   const k = Math.max(0.05, acting.k || 1);
   const canvasScale = acting.canvasScale || 1.5;
   const clamped = Math.max(0.8, Math.min(1.25, k));
-  const screen = Math.max(1.25, (px * clamped) / k);
-  return screen / (k * canvasScale);
+  const screenPx = Math.max(1.25, px * clamped);
+  return screenPx / (k * canvasScale);
 }
 
 function paintShadow(ctx, subs, color, k, angleDeg) {
@@ -167,16 +167,13 @@ export function drawShape(
   if (s.id === "turn_front" && acting.view && acting.view !== "front") return;
   if (s.id === "turn_three" && acting.view !== "threeQuarter") return;
   if (s.id === "turn_profile" && acting.view !== "profile") return;
+  if (s.id === "turn_back" && acting.view !== "back") return;
   if (
     acting.view === "back" &&
-    ["eye", "pupil", "mouth", "leftBrow", "rightBrow"].includes(s.role)
+    ["eye", "pupil", "mouth", "leftBrow", "rightBrow", "jaw"].includes(s.role)
   )
     return;
-  if (
-    acting.view === "back" &&
-    ["turn_front", "turn_three", "turn_profile"].includes(s.id)
-  )
-    return;
+  if (s.id === "face_detail" && acting.view === "back") return;
   if (
     acting.view === "profile" &&
     s.role === "eye" &&
@@ -242,7 +239,8 @@ export function drawShape(
     ctx.rotate(rad(angle));
     ctx.translate(-px, -py);
   }
-  if (s.role === "head" && !s.turnaround) {
+  const drawnTurn = acting.turnaround || s.turnaround;
+  if (s.role === "head" && !drawnTurn) {
     if (acting.view === "profile") {
       ctx.translate(px, py);
       ctx.scale(0.62, 1);
@@ -253,14 +251,15 @@ export function drawShape(
       ctx.translate(-px, -py);
     }
   }
-  if (s.id === "hair" && acting.view === "profile") {
+  if (s.id === "hair" && acting.view === "profile" && !drawnTurn) {
     ctx.translate(px, py);
     ctx.scale(0.78, 1);
     ctx.translate(16, 0);
     ctx.translate(-px, -py);
   }
-  if (s.role === "mouth" && acting.view === "profile") ctx.translate(26, 8);
-  if (s.role === "mouth" && acting.view === "threeQuarter") ctx.translate(12, 2);
+  if (s.role === "mouth" && acting.view === "profile" && !drawnTurn) ctx.translate(26, 8);
+  if (s.role === "mouth" && acting.view === "threeQuarter" && !drawnTurn)
+    ctx.translate(12, 2);
   if (s.role === "eye" && acting.blink !== false && !acting.suppressBlink) {
     const closed = blinkClosed(acting.liveTime ?? t, acting.blinkSeed || 1);
     if (closed > 0) {
@@ -269,7 +268,7 @@ export function drawShape(
       ctx.translate(-px, -py);
     }
   }
-  if (s.role === "eye" && acting.view === "threeQuarter" && !s.turnaround) {
+  if (s.role === "eye" && acting.view === "threeQuarter" && !drawnTurn) {
     if ((s.pivotX || 0) < (acting.assetWidth || 0) / 2) {
       ctx.translate(px, py);
       ctx.scale(0.72, 0.9);
@@ -417,8 +416,10 @@ export function renderFrame(canvas, episode, time, options = {}) {
   const timing = frameOptions(episode, options, t);
   ctx.save();
   ctx.setTransform(canvas.width / 1280, 0, 0, canvas.height / 720, 0, 0);
-  ctx.fillStyle = s.background;
-  ctx.fillRect(0, 0, 1280, 720);
+  if (!options.actorsOnly) {
+    ctx.fillStyle = s.background;
+    ctx.fillRect(0, 0, 1280, 720);
+  }
   const shot = activeShot(s, t),
     c = shot.camera,
     ratio = shot.progress,
@@ -437,11 +438,12 @@ export function renderFrame(canvas, episode, time, options = {}) {
   ctx.translate(640 + shake.x, 360 + shake.y);
   ctx.rotate(rad(c.rotation || 0));
   ctx.scale(zoom, zoom);
+  // Low/high camera shear is banned by the art bible. Onion trails use this same stack.
   ctx.translate(-(c.x + (c.panX || 0) * ratio), -(c.y + (c.panY || 0) * ratio));
   const env = episode.assets.find((a) => a.id === s.environment);
   const shiftX = c.x + (c.panX || 0) * ratio - 640;
   const shiftY = c.y + (c.panY || 0) * ratio - 360;
-  if (env) {
+  if (env && !options.actorsOnly) {
     ctx.save();
     ctx.scale(1280 / env.width, 720 / env.height);
     for (const n of env.shapes) {
@@ -579,7 +581,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
     ctx.restore();
   }
   ctx.restore();
-  if (s.grade && timing.ink !== "legacy") {
+  if (s.grade && timing.ink !== "legacy" && !options.actorsOnly) {
     const strength = s.grade.strength ?? 0.22;
     ctx.save();
     ctx.globalAlpha = strength;
@@ -590,7 +592,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
     ctx.fillRect(0, 0, 1280, 280);
     ctx.restore();
   }
-  if (options.captions !== false && lines.length) {
+  if (!options.actorsOnly && options.captions !== false && lines.length) {
     const words = lines[0].text.split(" "),
       rows = [];
     ctx.font = "500 21px Arial, sans-serif";
@@ -659,9 +661,11 @@ export function renderOnionSkin(canvas, episode, time, options = {}) {
   ctx.fillStyle = "#14181c";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const span = Math.max(before, after, 1);
-  const ordered = [...frames].sort(
-    (a, b) => Math.abs(b.index) - Math.abs(a.index),
-  );
+  const ordered = [...frames].sort((a, b) => {
+    if (a.index === 0) return -1;
+    if (b.index === 0) return 1;
+    return Math.abs(b.index) - Math.abs(a.index);
+  });
   for (const frame of ordered) {
     const off = factory(canvas.width, canvas.height);
     renderFrame(off, episode, frame.time, {
@@ -669,6 +673,7 @@ export function renderOnionSkin(canvas, episode, time, options = {}) {
       captions: false,
       selected: null,
       smear: frame.index === 0,
+      actorsOnly: frame.index !== 0,
     });
     if (frame.index < 0)
       tintCanvas(off, options.prevTint || "#6eb6ff", 0.72);
@@ -694,11 +699,13 @@ export function renderOnionSkin(canvas, episode, time, options = {}) {
           ctx.beginPath();
           let started = false;
           frames.forEach((frame, index) => {
-            const points = jointPositions(asset, actor, onTwos(frame.time));
+            const sample = locate(episode, frame.time);
+            if (!sample || sample.scene.id !== hit.scene.id) return;
+            const points = jointPositions(asset, actor, onTwos(sample.time));
             if (!points[joint]) return;
             const at = worldToCanvas(
-              hit.scene,
-              frame.time,
+              sample.scene,
+              sample.time,
               points[joint].x,
               points[joint].y,
               canvas.width,

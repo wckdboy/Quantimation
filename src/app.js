@@ -13,7 +13,7 @@ import { applyIk, applyLipsync, applyPose, reportMotion } from "./directing.js";
 import { auditProduction, summarizeRender } from "./quality.js";
 import { soundBuffer } from "./sound.js";
 import { subtitlesSrt } from "./captions.js";
-import { familyShowcase } from "./family.js";
+import { castShowcase } from "./cast.js";
 import { poseAt } from "./pose.js";
 import { STANDARDS, STYLE_KIT, instantiateStandard } from "./standards.js";
 const $ = (id) => document.getElementById(id),
@@ -1512,8 +1512,9 @@ if (bridge?.onMcpRequest)
           );
         pause();
         const before = JSON.stringify(episode);
+        let detail = null;
         try {
-          fn();
+          detail = fn() || null;
           const valid = validateEpisode(episode);
           episode = JSON.parse(before);
           checkpoint();
@@ -1525,7 +1526,11 @@ if (bridge?.onMcpRequest)
           episode = JSON.parse(before);
           throw error;
         }
-        return { updated: true, title: episode.title };
+        return {
+          updated: true,
+          title: episode.title,
+          ...(detail && typeof detail === "object" ? detail : {}),
+        };
       };
       if (c.action === "get_project")
         result = {
@@ -1650,11 +1655,14 @@ if (bridge?.onMcpRequest)
         });
       else if (c.action === "lipsync_line")
         result = mutation(() => {
-          applyLipsync(episode, {
+          if (c.lipsyncFallback)
+            throw new Error(`Rhubarb lip sync failed: ${c.lipsyncFallback}`);
+          const applied = applyLipsync(episode, {
             sceneId: c.sceneId,
             lineId: c.lineId,
             cues: c.cues,
           });
+          return { engine: applied.engine, cueCount: applied.shapes.length };
         });
       else if (c.action === "onion_skin") {
         const at = Math.max(0, Math.min(duration(episode), Number(c.time) || 0));
@@ -1803,7 +1811,7 @@ examplesButton.onclick = () => {
   if (busy || exporting) return;
   modal(
     "Example productions",
-    `<p>Load an editable production. Your current project remains available through Undo.</p><div class="modal-actions"><button id="exampleDragon" class="button">Dragon review cut</button><button id="exampleFamily" class="button primary">Quantumania family</button></div>`,
+    `<p>Load an editable production. Your current project remains available through Undo.</p><div class="modal-actions"><button id="exampleDragon" class="button">Dragon review cut</button><button id="exampleFamily" class="button primary">Dot, Teo and Gloam</button></div>`,
   );
   const open = (make) => {
     applyEdit(() => {
@@ -1817,5 +1825,5 @@ examplesButton.onclick = () => {
     $("studioNav").click();
   };
   $("exampleDragon").onclick = () => open(demoEpisode);
-  $("exampleFamily").onclick = () => open(familyShowcase);
+  $("exampleFamily").onclick = () => open(castShowcase);
 };

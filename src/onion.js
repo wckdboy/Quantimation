@@ -118,15 +118,6 @@ export function worldToCanvas(scene, time, x, y, canvasW = 1280, canvasH = 720) 
   const zoom = c.zoom + ((c.zoomEnd ?? c.zoom) - c.zoom) * eased;
   let px = x - (c.x + (c.panX || 0) * ratio);
   let py = y - (c.y + (c.panY || 0) * ratio);
-  if (c.perspective === "low") {
-    const nx = px - 0.075 * py;
-    py = 1.08 * py - 15;
-    px = nx;
-  } else if (c.perspective === "high") {
-    const nx = px + 0.04 * py;
-    py = 0.82 * py + 35;
-    px = nx;
-  }
   px *= zoom;
   py *= zoom;
   const a = ((c.rotation || 0) * Math.PI) / 180;

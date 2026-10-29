@@ -93,7 +93,7 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.strokeWidth !== undefined)
     o.strokeWidth = num(s.strokeWidth, "strokeWidth", 0, 40);
   if (s.parallax !== undefined)
-    o.parallax = num(s.parallax, "parallax", 0, 1);
+    o.parallax = num(s.parallax, "parallax", 0, 1.5);
   if (s.follow !== undefined) o.follow = num(s.follow, "follow", 0, 4);
   if (s.cel === true) o.cel = true;
   if (s.cel === false) o.cel = false;
@@ -113,6 +113,7 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.shadow === true) o.shadow = true;
   if (s.shadow === false) o.shadow = false;
   if (s.shadowK !== undefined) o.shadowK = num(s.shadowK, "shadowK", 0, 0.4);
+  if (s.shadowFill !== undefined) o.shadowFill = color(s.shadowFill);
   if (s.fill !== undefined) o.fill = color(s.fill);
   if (s.stroke !== undefined) o.stroke = color(s.stroke);
   if (s.role !== undefined) {

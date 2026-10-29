@@ -1,4 +1,3 @@
-import { familyAsset } from "./family.js";
 import {
   cuesToMouthTrack,
   estimateCues,
@@ -85,7 +84,22 @@ export function applyLipsync(episode, { sceneId, lineId, cues }) {
     line.at,
     scene.duration,
   );
-  actor.tracks = mergeTracks(actor.tracks, [track]);
+  const start = line.at;
+  const end = line.at + line.duration;
+  const previous = (actor.tracks || []).find((item) => item.target === track.target);
+  const kept = (previous?.keyframes || []).filter(
+    (frame) => frame.t < start - 0.001 || frame.t > end + 0.001,
+  );
+  const incoming = track.keyframes.filter(
+    (frame) => frame.t >= start - 0.001 && frame.t <= end + 0.001,
+  );
+  const keyframes = [];
+  for (const frame of [...kept, ...incoming].sort((a, b) => a.t - b.t)) {
+    const last = keyframes.at(-1);
+    if (last && Math.abs(last.t - frame.t) < 0.0005) last.variant = frame.variant;
+    else keyframes.push(frame);
+  }
+  actor.tracks = mergeTracks(actor.tracks, [{ ...track, keyframes }]);
   return {
     engine: cues?.length ? "rhubarb" : "estimate",
     shapes: source.map((cue) => mouthForShape(cue.value, available)),
@@ -111,6 +125,6 @@ export function rigCatalog() {
       "blink",
     ],
     arms: Object.keys({ left: 1, right: 1 }),
-    sample: familyAsset("pip").id,
+    sample: "dot",
   };
 }

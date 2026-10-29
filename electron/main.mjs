@@ -18,6 +18,7 @@ import { directEpisode, designAsset, endpoint } from "./director.mjs";
 import { synthesize } from "./speech.mjs";
 import { stopNeuralSpeech } from "./neural-speech.mjs";
 import { startControl } from "./control.mjs";
+import { exportMaster } from "./export-master.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 app.setName("Quantimation");
 app.setPath(
@@ -528,6 +529,19 @@ handle(
     return save(result.filePath);
   },
 );
+handle("master:export", async (request) => {
+  if (!request || typeof request !== "object") throw new Error("Invalid master request.");
+  const episode = validateEpisode(request.episode);
+  const height = [720, 1080, 2160].includes(request.height) ? request.height : 1080;
+  const fps = Math.min(30, Math.max(12, Math.round(Number(request.fps) || 24)));
+  return exportMaster(episode, {
+    height,
+    fps,
+    captions: request.captions === true,
+    title: episode.title,
+    dir: path.join(app.getPath("documents"), "Quantimation", "Masters"),
+  });
+});
 app
   .whenReady()
   .then(async () => {

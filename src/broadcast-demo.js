@@ -14,7 +14,7 @@ export function kitchenEpisode({
   gloamCues,
   durations = {},
 } = {}) {
-  const dot = buildLead("dot", { id: "dot" });
+  const dot = buildLead("dot", { id: "dot", primaryView: "threeQuarter" });
   const teo = buildLead("teo", { id: "teo" });
   const gloam = buildLead("gloam", { id: "gloam" });
   const kitchen = buildSet("suburb_kitchen", { id: "dot_kitchen" });
@@ -50,7 +50,7 @@ export function kitchenEpisode({
           {
             at: 0,
             label: "Wide kitchen",
-            camera: { x: 640, y: 400, zoom: 1.08, zoomEnd: 1.08 },
+            camera: { x: 600, y: 400, zoom: 1.08, zoomEnd: 1.08, panX: 70 },
           },
           {
             at: teoAt,
@@ -73,11 +73,11 @@ export function kitchenEpisode({
           {
             id: "dot",
             assetId: "dot",
-            x: 340,
-            y: 690,
-            scale: 1,
+            x: 360,
+            y: 680,
+            scale: 0.74,
             motion: "still",
-            view: "front",
+            view: "threeQuarter",
             tracks: [
               {
                 target: "head",
@@ -94,9 +94,9 @@ export function kitchenEpisode({
           {
             id: "teo",
             assetId: "teo",
-            x: 640,
-            y: 700,
-            scale: 0.96,
+            x: 660,
+            y: 690,
+            scale: 0.7,
             motion: "still",
             view: "front",
             tracks: [
@@ -129,9 +129,9 @@ export function kitchenEpisode({
           {
             id: "gloam",
             assetId: "gloam",
-            x: 980,
-            y: 690,
-            scale: 1.05,
+            x: 960,
+            y: 660,
+            scale: 0.72,
             motion: "still",
             view: "front",
             tracks: [],
@@ -159,9 +159,10 @@ export function coilShedEpisode(cues) {
   });
 }
 
-export function characterStill(characterId = "dot") {
+export function characterStill(characterId = "dot", view = "front") {
   const asset = buildLead(characterId === "pip" ? "dot" : characterId, {
     id: "still_" + characterId,
+    primaryView: view,
   });
   return validateEpisode({
     version: 1,
@@ -185,9 +186,9 @@ export function characterStill(characterId = "dot") {
             assetId: asset.id,
             x: 640,
             y: 700,
-            scale: 1,
+            scale: 0.92,
             motion: "still",
-            view: "front",
+            view,
           },
         ],
         dialogue: [],

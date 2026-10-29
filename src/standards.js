@@ -1,6 +1,5 @@
 import { validateAsset } from "./model.js";
 import { dragonEpisode } from "./dragon.js";
-import { familyAsset } from "./family.js";
 import { buildSet, SET_CATALOG } from "./sets.js";
 import { CAST, buildLead } from "./cast.js";
 export const STYLE_KIT = {
@@ -135,8 +134,6 @@ export function instantiateStandard(
     throw new Error("Seed must be an integer from 0 to 100000.");
   if (standardId === "dot" || standardId === "teo" || standardId === "gloam")
     return buildLead(standardId, { id, name });
-  if (standardId.startsWith("family_"))
-    return familyAsset(standardId.slice(7), { id, name, parameters });
   if (standardId === "human_rig") return buildLead("dot", { id, name });
   const set = buildSet(standardId, {
     id,

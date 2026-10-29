@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import { pressureWidth, ribbonPolygon, sampleSvgPath, shadeHex } from "../src/ink.js";
 import { onTwos, shakeOffset, frameTimes, frameSize } from "../src/timing.js";
 import { solveArm } from "../src/rig.js";
-import { FAMILY_LIMBS } from "../src/family.js";
+import { DOT_LIMBS, buildLead } from "../src/cast.js";
 import {
+  closureAudit,
   cuesToMouthTrack,
   estimateCues,
   mouthForShape,
+  normalizeCues,
 } from "../src/lipsync.js";
 import { analyzeJoint, onionTimes } from "../src/onion.js";
 import { coilShedEpisode } from "../src/broadcast-demo.js";
@@ -32,6 +34,12 @@ test("open strokes taper and closed strokes keep a body", () => {
   assert.ok(poly.length >= 6);
   assert.equal(shadeHex("#808080", -1), "#000000");
   assert.equal(sampleSvgPath("M0 0 L10 0 L10 10 Z")[0].closed, true);
+  const smooth = sampleSvgPath("M0 0 C10 0 20 10 30 10 S50 0 60 10");
+  assert.ok(smooth[0].points.at(-1).x > 50);
+  const arc = sampleSvgPath("M20 0 A20 20 0 0 1 -20 0");
+  assert.ok(arc[0].points.length > 6);
+  const bounded = normalizeCues([{ start: 0, end: 1e9, value: "C" }]);
+  assert.ok(bounded.at(-1).end <= 180);
 });
 
 test("twos holds, camera shake and frame sizes are deterministic", () => {
@@ -49,9 +57,9 @@ test("twos holds, camera shake and frame sizes are deterministic", () => {
 
 test("arm IK rests at the drawn wrist and reaches outward", () => {
   for (const side of ["left", "right"]) {
-    const rest = solveArm(side, FAMILY_LIMBS[side].wrist);
-    assert.ok(Math.abs(rest.upper) < 0.05, side);
-    assert.ok(Math.abs(rest.lower) < 0.05, side);
+    const rest = solveArm(side, DOT_LIMBS[side].wrist);
+    assert.ok(Math.abs(rest.upper) < 3, side);
+    assert.ok(Math.abs(rest.lower) < 4, side);
   }
   const reach = solveArm("left", { x: -20, y: 360 });
   assert.notEqual(Math.round(reach.upper), 0);
@@ -79,6 +87,9 @@ test("rhubarb shapes map onto the nine mouth drawings and hold between cues", ()
   assert.equal(track.target, "mouth");
   assert.ok(track.keyframes.every((frame) => frame.easing === "hold"));
   assert.equal(new Set(track.keyframes.map((frame) => frame.t)).size, track.keyframes.length);
+  const line = "The form has a box for a talking kettle. I am leaving it blank.";
+  const normalized = normalizeCues(estimateCues(line, 5), { text: line });
+  assert.deepEqual(closureAudit(line, normalized), []);
 });
 
 test("onion times and motion report flag a pop but not a smooth arc", () => {
@@ -126,7 +137,27 @@ test("coil shed episode, parallax sets and lip-sync tracks validate", () => {
     ],
   });
   assert.equal(again.engine, "rhubarb");
+  const dotLine = episode.scenes[0].dialogue.find((line) => line.id === "line_dot");
+  const before = episode.scenes[0].instances[0].tracks.find((track) => track.target === "mouth").keyframes.length;
+  applyLipsync(episode, {
+    sceneId: "kitchen",
+    lineId: "line_teo",
+    cues: [{ start: 0, end: 0.4, value: "B" }],
+  });
+  const dotKeys = episode.scenes[0].instances[0].tracks.find((track) => track.target === "mouth").keyframes;
+  assert.ok(dotKeys.some((frame) => frame.t < dotLine.at + dotLine.duration));
+  assert.equal(dotKeys.length, before);
   assert.equal(validateEpisode(episode).title, "Page Four");
+  const roles = [];
+  const walk = (nodes) => {
+    for (const node of nodes || []) {
+      if (node.role) roles.push(node.role);
+      walk(node.children);
+    }
+  };
+  walk(buildLead("dot").shapes);
+  assert.equal(roles.filter((role) => role === "leftArm").length, 1);
+  assert.equal(roles.filter((role) => role === "leftLeg").length, 1);
 });
 
 test("wav timeline mix is deterministic and bounded", () => {

@@ -1,4 +1,4 @@
-import { FAMILY_LIMBS, familyPoseTracks } from "./family.js";
+import { DOT_LIMBS } from "./cast.js";
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const deg = (r) => (r * 180) / Math.PI;
@@ -44,8 +44,8 @@ export function solveTwoBone(shoulder, elbow, wrist, target) {
   return { upper, lower, elbow: elbowPoint };
 }
 
-export function solveArm(side, target) {
-  const limb = FAMILY_LIMBS[side];
+export function solveArm(side, target, limbs = DOT_LIMBS) {
+  const limb = limbs[side];
   if (!limb) throw new Error("Unknown arm.");
   return solveTwoBone(limb.shoulder, limb.elbow, limb.wrist, target);
 }
@@ -100,30 +100,30 @@ function key(target, values, t = 0) {
 }
 
 export function poseTracks(pose = "neutral", at = 0) {
-  if (["neutral", "smug", "shocked", "angry", "talking"].includes(pose)) {
-    return familyPoseTracks(pose).map((track) => ({
-      target: track.target,
-      keyframes: track.keyframes.map((frame) => ({
-        ...frame,
-        t: Math.max(0, frame.t + at),
-      })),
-    }));
-  }
   const poses = {
+    neutral: [key("mouth", { variant: "X" }, at)],
+    smug: [
+      key("head", { rotation: -6 }, at),
+      key("brow_left", { rotation: -8 }, at),
+      key("mouth", { variant: "E" }, at),
+    ],
+    shocked: [
+      key("head", { y: -4, rotation: 4 }, at),
+      key("mouth", { variant: "D" }, at),
+    ],
+    angry: [
+      key("brow_left", { rotation: 14 }, at),
+      key("brow_right", { rotation: -14 }, at),
+      key("mouth", { variant: "A" }, at),
+    ],
+    talking: [key("mouth", { variant: "C" }, at)],
     anticipate: [
       key("head", { rotation: 6, y: 4 }, at),
-      key("character_root", { scaleY: 0.96, scaleX: 1.04 }, at),
       key("left_upper_arm", { rotation: 8 }, at),
       key("right_upper_arm", { rotation: -8 }, at),
     ],
-    squash: [
-      key("character_root", { scaleX: 1.08, scaleY: 0.9, y: 10 }, at),
-      key("head", { scaleX: 1.06, scaleY: 0.92, y: 6 }, at),
-    ],
-    stretch: [
-      key("character_root", { scaleX: 0.94, scaleY: 1.08, y: -12 }, at),
-      key("head", { scaleX: 0.96, scaleY: 1.06, y: -8 }, at),
-    ],
+    squash: [key("head", { scaleX: 1.06, scaleY: 0.92, y: 6 }, at)],
+    stretch: [key("head", { scaleX: 0.96, scaleY: 1.06, y: -8 }, at)],
     blink: [
       key("eye_left", { scaleY: 0.12 }, at),
       key("eye_right", { scaleY: 0.12 }, at),

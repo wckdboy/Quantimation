@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { rhubarbCues } from "../src/lipsync.js";
+import { rhubarbCues } from "../src/rhubarb.mjs";
 const option = process.argv.indexOf("--profile");
 const defaultProfile =
   process.platform === "win32"
@@ -69,6 +69,28 @@ export function createMcpServer() {
         "Quantimation is a live 2D animation studio. Inspect the project before editing. All artwork and animation are declarative JSON. Use the production_format resource for shape and camera conventions. Mutations are validated and undoable. Pose, check onion_skin and motion_report, then fix spacing before render_master. Lip-sync uses Rhubarb when wavPath is set. Model generation returns a job ID; poll get_generation sparingly.",
     },
   );
+function boundCues(cues) {
+  if (!Array.isArray(cues) || cues.length > 400) throw new Error("Cue list is too long.");
+  let prev = -1;
+  return cues.map((cue) => {
+    const start = Number(cue?.start);
+    const end = Number(cue?.end);
+    const value = String(cue?.value || "X");
+    if (
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      start < 0 ||
+      end > 180 ||
+      end < start
+    )
+      throw new Error("Cue timestamps must be finite, ordered and within 180 seconds.");
+    if (start + 1e-6 < prev) throw new Error("Cues must be ordered.");
+    prev = start;
+    if (!/^[A-HX]$/.test(value)) throw new Error("Unknown mouth cue.");
+    return { start, end, value };
+  });
+}
+
   const tool = (name, description, inputSchema, action, readOnly = false) =>
     server.registerTool(
       name,
@@ -93,8 +115,19 @@ export function createMcpServer() {
                 }),
               };
             } catch (error) {
-              args = { ...args, lipsyncFallback: error.message };
+              return {
+                isError: true,
+                content: [
+                  {
+                    type: "text",
+                    text: `Rhubarb lip sync failed: ${error.message}`,
+                  },
+                ],
+              };
             }
+          }
+          if (action === "lipsync_line" && Array.isArray(args.cues)) {
+            args = { ...args, cues: boundCues(args.cues) };
           }
           const result = await studio(action, args);
           if (action === "capture_frame" || action === "onion_skin")
@@ -277,7 +310,7 @@ export function createMcpServer() {
   );
   tool(
     "solve_ik",
-    "Solve two-bone IK for a Quark arm and write upper-arm, forearm and hand pose tracks. Target x/y are in the character's local drawing space.",
+    "Solve two-bone IK for a lead's arm and write upper-arm, forearm and hand pose tracks. Target x/y are in the character's local drawing space.",
     {
       sceneId: z.string(),
       instanceId: z.string(),
@@ -285,7 +318,7 @@ export function createMcpServer() {
       x: z.number(),
       y: z.number(),
       at: z.number().min(0).optional(),
-      hand: z.enum(["relaxed", "point", "fist", "spread"]).default("point"),
+      hand: z.enum(["relaxed", "point", "fist", "spread", "hold"]).default("point"),
     },
     "solve_ik",
   );
@@ -297,7 +330,16 @@ export function createMcpServer() {
       lineId: z.string(),
       wavPath: z.string().optional(),
       dialog: z.string().optional(),
-      cues: z.array(object).optional(),
+      cues: z
+        .array(
+          z.object({
+            start: z.number().min(0).max(180),
+            end: z.number().min(0).max(180),
+            value: z.string().max(4),
+          }),
+        )
+        .max(400)
+        .optional(),
     },
     "lipsync_line",
   );

@@ -85,9 +85,69 @@ function pushCurve(points, at, steps) {
   for (let s = 1; s <= steps; s++) points.push(at(s / steps));
 }
 
+function sampleArc(x0, y0, rx, ry, phiDeg, large, sweep, x, y, spacing) {
+  const phi = (phiDeg * Math.PI) / 180;
+  const sinPhi = Math.sin(phi);
+  const cosPhi = Math.cos(phi);
+  const dx = (x0 - x) / 2;
+  const dy = (y0 - y) / 2;
+  const x1p = cosPhi * dx + sinPhi * dy;
+  const y1p = -sinPhi * dx + cosPhi * dy;
+  let arx = Math.abs(rx);
+  let ary = Math.abs(ry);
+  if (arx < 1e-6 || ary < 1e-6) return [{ x, y }];
+  let rx2 = arx * arx;
+  let ry2 = ary * ary;
+  const lam = (x1p * x1p) / rx2 + (y1p * y1p) / ry2;
+  if (lam > 1) {
+    const scale = Math.sqrt(lam);
+    arx *= scale;
+    ary *= scale;
+    rx2 = arx * arx;
+    ry2 = ary * ary;
+  }
+  const sign = large === sweep ? -1 : 1;
+  const num = Math.max(0, rx2 * ry2 - rx2 * y1p * y1p - ry2 * x1p * x1p);
+  const den = rx2 * y1p * y1p + ry2 * x1p * x1p || 1;
+  const coef = sign * Math.sqrt(num / den);
+  const cxp = (coef * arx * y1p) / ary;
+  const cyp = (coef * -ary * x1p) / arx;
+  const centerX = cosPhi * cxp - sinPhi * cyp + (x0 + x) / 2;
+  const centerY = sinPhi * cxp + cosPhi * cyp + (y0 + y) / 2;
+  const angle = (ux, uy, vx, vy) => {
+    const dot = ux * vx + uy * vy;
+    const len = Math.hypot(ux, uy) * Math.hypot(vx, vy) || 1;
+    let a = Math.acos(Math.max(-1, Math.min(1, dot / len)));
+    if (ux * vy - uy * vx < 0) a = -a;
+    return a;
+  };
+  const theta1 = angle(1, 0, (x1p - cxp) / arx, (y1p - cyp) / ary);
+  let delta = angle(
+    (x1p - cxp) / arx,
+    (y1p - cyp) / ary,
+    (-x1p - cxp) / arx,
+    (-y1p - cyp) / ary,
+  );
+  if (!sweep && delta > 0) delta -= Math.PI * 2;
+  if (sweep && delta < 0) delta += Math.PI * 2;
+  const len = Math.hypot(x - x0, y - y0) + Math.abs(delta) * Math.max(arx, ary);
+  const steps = curveSteps(len, spacing);
+  const points = [];
+  for (let i = 1; i <= steps; i++) {
+    const t = theta1 + delta * (i / steps);
+    const px = Math.cos(t) * arx;
+    const py = Math.sin(t) * ary;
+    points.push({
+      x: cosPhi * px - sinPhi * py + centerX,
+      y: sinPhi * px + cosPhi * py + centerY,
+    });
+  }
+  return points;
+}
+
 export function sampleSvgPath(d, spacing = 8) {
   const tokens = String(d || "").match(
-    /[MmLlHhVvCcQqTtAaZz]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g,
+    /[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g,
   );
   if (!tokens) return [];
   const subs = [];
@@ -96,6 +156,11 @@ export function sampleSvgPath(d, spacing = 8) {
   let cy = 0;
   let sx = 0;
   let sy = 0;
+  let lastCx = 0;
+  let lastCy = 0;
+  let lastQx = 0;
+  let lastQy = 0;
+  let prevOp = "";
   let cur = null;
   const isCmd = (v) => /^[A-Za-z]$/.test(v || "");
   const num = () => parseFloat(tokens[i++]);
@@ -121,6 +186,7 @@ export function sampleSvgPath(d, spacing = 8) {
         cx = x;
         cy = y;
       }
+      prevOp = "M";
     } else if (op === "L") {
       while (i < tokens.length && !isCmd(tokens[i])) {
         const x = num() + (rel ? cx : 0);
@@ -129,16 +195,19 @@ export function sampleSvgPath(d, spacing = 8) {
         cx = x;
         cy = y;
       }
+      prevOp = "L";
     } else if (op === "H") {
       while (i < tokens.length && !isCmd(tokens[i])) {
         cx = num() + (rel ? cx : 0);
         cur?.points.push({ x: cx, y: cy });
       }
+      prevOp = "L";
     } else if (op === "V") {
       while (i < tokens.length && !isCmd(tokens[i])) {
         cy = num() + (rel ? cy : 0);
         cur?.points.push({ x: cx, y: cy });
       }
+      prevOp = "L";
     } else if (op === "Q") {
       while (i < tokens.length && !isCmd(tokens[i])) {
         const x1 = num() + (rel ? cx : 0);
@@ -162,8 +231,11 @@ export function sampleSvgPath(d, spacing = 8) {
           }),
           curveSteps(len, spacing),
         );
+        lastQx = x1;
+        lastQy = y1;
         cx = x;
         cy = y;
+        prevOp = "Q";
       }
     } else if (op === "C") {
       while (i < tokens.length && !isCmd(tokens[i])) {
@@ -198,8 +270,79 @@ export function sampleSvgPath(d, spacing = 8) {
           },
           curveSteps(len, spacing),
         );
+        lastCx = x2;
+        lastCy = y2;
         cx = x;
         cy = y;
+        prevOp = "C";
+      }
+    } else if (op === "S" || op === "T") {
+      while (i < tokens.length && !isCmd(tokens[i])) {
+        const smooth = op === "S" ? prevOp === "C" : prevOp === "Q";
+        const rx = smooth ? (op === "S" ? 2 * cx - lastCx : 2 * cx - lastQx) : cx;
+        const ry = smooth ? (op === "S" ? 2 * cy - lastCy : 2 * cy - lastQy) : cy;
+        if (op === "T") {
+          const x = num() + (rel ? cx : 0);
+          const y = num() + (rel ? cy : 0);
+          const p0x = cx;
+          const p0y = cy;
+          const len = Math.hypot(rx - p0x, ry - p0y) + Math.hypot(x - rx, y - ry);
+          pushCurve(
+            cur.points,
+            (u) => ({
+              x: (1 - u) * (1 - u) * p0x + 2 * (1 - u) * u * rx + u * u * x,
+              y: (1 - u) * (1 - u) * p0y + 2 * (1 - u) * u * ry + u * u * y,
+            }),
+            curveSteps(len, spacing),
+          );
+          lastQx = rx;
+          lastQy = ry;
+          cx = x;
+          cy = y;
+          prevOp = "Q";
+        } else {
+          const x2 = num() + (rel ? cx : 0);
+          const y2 = num() + (rel ? cy : 0);
+          const x = num() + (rel ? cx : 0);
+          const y = num() + (rel ? cy : 0);
+          const p0x = cx;
+          const p0y = cy;
+          const len =
+            Math.hypot(rx - p0x, ry - p0y) +
+            Math.hypot(x2 - rx, y2 - ry) +
+            Math.hypot(x - x2, y - y2);
+          pushCurve(
+            cur.points,
+            (u) => {
+              const v = 1 - u;
+              return {
+                x: v * v * v * p0x + 3 * v * v * u * rx + 3 * v * u * u * x2 + u * u * u * x,
+                y: v * v * v * p0y + 3 * v * v * u * ry + 3 * v * u * u * y2 + u * u * u * y,
+              };
+            },
+            curveSteps(len, spacing),
+          );
+          lastCx = x2;
+          lastCy = y2;
+          cx = x;
+          cy = y;
+          prevOp = "C";
+        }
+      }
+    } else if (op === "A") {
+      while (i < tokens.length && !isCmd(tokens[i])) {
+        const rx = num();
+        const ry = num();
+        const rot = num();
+        const large = num();
+        const sweep = num();
+        const x = num() + (rel ? cx : 0);
+        const y = num() + (rel ? cy : 0);
+        for (const point of sampleArc(cx, cy, rx, ry, rot, large !== 0, sweep !== 0, x, y, spacing))
+          cur?.points.push(point);
+        cx = x;
+        cy = y;
+        prevOp = "A";
       }
     } else if (op === "Z") {
       if (cur) {
@@ -207,8 +350,10 @@ export function sampleSvgPath(d, spacing = 8) {
         cx = sx;
         cy = sy;
       }
+      prevOp = "Z";
     } else {
       while (i < tokens.length && !isCmd(tokens[i])) i++;
+      prevOp = op;
     }
   }
   if (cur?.points.length) subs.push(cur);

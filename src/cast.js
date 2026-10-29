@@ -1,525 +1,816 @@
-import { validateAsset } from "./model.js";
-import { HEADS, eyes, tf } from "./heads.mjs";
+import { validateAsset, validateEpisode } from "./model.js";
+import { ellipsePts, roundRectPts } from "./line-engine.mjs";
 import visemes from "./mouth-visemes.dot.json" with { type: "json" };
 
 const INK = "#221D26";
 
 function pathFrom(points, close = true) {
-  if (!points.length) return "";
   const body = points
     .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)} ${p[1].toFixed(2)}`)
     .join(" ");
   return close ? `${body} Z` : body;
 }
 
+function shape(pts, fill, line, extra = {}) {
+  const open = extra.open === true;
+  return {
+    type: "path",
+    path: pathFrom(pts, !open),
+    fill: open ? "transparent" : fill,
+    stroke: extra.stroke || (line === "none" ? "none" : INK),
+    strokeWidth: 0,
+    line,
+    ...(extra.shadow === false || open || line === "none" || line === "interior" || line === "detail"
+      ? { shadow: extra.shadow === true }
+      : { shadow: true }),
+    ...(extra.shadowFill ? { shadowFill: extra.shadowFill } : {}),
+    ...(extra.shadowK !== undefined ? { shadowK: extra.shadowK } : {}),
+    ...(extra.id ? { id: extra.id } : {}),
+    ...(extra.role ? { role: extra.role } : {}),
+    ...(extra.pivotX !== undefined ? { pivotX: extra.pivotX, pivotY: extra.pivotY } : {}),
+    seed: extra.seed ?? 1,
+  };
+}
+
+function ellipse(x, y, rx, ry, fill, line, extra = {}) {
+  return {
+    type: "ellipse",
+    x,
+    y,
+    rx: Math.max(0.5, rx),
+    ry: Math.max(0.5, ry),
+    fill,
+    stroke: line === "none" ? "none" : extra.stroke || INK,
+    strokeWidth: 0,
+    line,
+    ...(extra.shadow
+      ? { shadow: true, shadowFill: extra.shadowFill, shadowK: extra.shadowK ?? 0.12 }
+      : { shadow: false }),
+    ...(extra.id ? { id: extra.id } : {}),
+    ...(extra.role ? { role: extra.role } : {}),
+    seed: extra.seed ?? 1,
+  };
+}
+
+function group(id, x, y, children, extra = {}) {
+  return {
+    type: "group",
+    id,
+    pivotX: x,
+    pivotY: y,
+    ...(extra.x !== undefined ? { x: extra.x, y: extra.y } : {}),
+    ...(extra.role ? { role: extra.role } : {}),
+    ...(extra.scaleX ? { scaleX: extra.scaleX, scaleY: extra.scaleY } : {}),
+    ...(extra.turnaround ? { turnaround: true } : {}),
+    children,
+    ...(extra.variants ? { variants: extra.variants } : {}),
+  };
+}
+
+function limbPolygon(ax, ay, bx, by, w0, w1) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const overlap = Math.max(w0, w1) * 0.26;
+  const a = [ax - ux * overlap, ay - uy * overlap];
+  const b = [bx + ux * overlap * 0.85, by + uy * overlap * 0.85];
+  const ang = Math.atan2(uy, ux);
+  const pts = [];
+  const arc = (cx, cy, r, a0, a1, steps) => {
+    for (let i = 0; i <= steps; i++) {
+      const t = a0 + ((a1 - a0) * i) / steps;
+      pts.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]);
+    }
+  };
+  arc(a[0], a[1], w0 / 2, ang + Math.PI / 2, ang + Math.PI * 1.5, 8);
+  arc(b[0], b[1], w1 / 2, ang - Math.PI / 2, ang + Math.PI / 2, 8);
+  return pts;
+}
+
+function frameFor(id) {
+  const spec = LEADS[id];
+  const HH = spec.hh;
+  const cx = spec.width / 2;
+  const top = 28;
+  return { spec, HH, cx, top, Y: (y) => top + y * HH };
+}
+
+function at(f, x, y) {
+  return [f.cx + x * f.HH, f.Y(y)];
+}
+
+function poly(f, pairs) {
+  return pairs.map(([x, y]) => at(f, x, y));
+}
+
+function smoothClosed(pairs) {
+  const n = pairs.length;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = pairs[(i - 1 + n) % n];
+    const p1 = pairs[i];
+    const p2 = pairs[(i + 1) % n];
+    const p3 = pairs[(i + 2) % n];
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    for (let s = 0; s < 5; s++) {
+      const t = s / 5;
+      const v = 1 - t;
+      out.push([
+        v * v * v * p1[0] + 3 * v * v * t * c1[0] + 3 * v * t * t * c2[0] + t * t * t * p2[0],
+        v * v * v * p1[1] + 3 * v * v * t * c1[1] + 3 * v * t * t * c2[1] + t * t * t * p2[1],
+      ]);
+    }
+  }
+  return out;
+}
+
+function fill(f, pairs, color, line, extra) {
+  return shape(poly(f, pairs), color, line, extra);
+}
+
+function stroke(f, pairs, line, extra = {}) {
+  return shape(poly(f, pairs), "transparent", line, { ...extra, open: true, shadow: false });
+}
+
+function cap(x, y, width, color) {
+  return ellipse(x, y, width / 2, width / 2, color, "none");
+}
+
+function limb(id, a, b, w0, w1, color, shadow) {
+  return group(id, a[0], a[1], [
+    cap(a[0], a[1], Math.max(w0, w1), color),
+    shape(limbPolygon(a[0], a[1], b[0], b[1], w0, w1), color, "contour", {
+      shadowFill: shadow,
+      shadowK: 0.18,
+      seed: 4,
+    }),
+  ], { role: "decoration" });
+}
+
+function handDraw(x, y, skin, shadow, side, pose, length) {
+  const s = side === "left" ? -1 : 1;
+  const w = Math.max(12, length * 0.16);
+  const parts = [
+    shape(ellipsePts(x + s * 2, y + length * 0.42, length * 0.24, length * 0.34, 18), skin, "contour", {
+      shadowFill: shadow,
+      shadowK: 0.16,
+      seed: 8,
+    }),
+  ];
+  const add = (x0, y0, x1, y1, width) => {
+    parts.push(
+      shape(limbPolygon(x0, y0, x1, y1, width, width * 0.78), skin, "contour", {
+        shadowFill: shadow,
+        shadowK: 0.14,
+        seed: 9,
+      }),
+    );
+  };
+  if (pose === "point") {
+    add(x, y + length * 0.2, x - s * 2, y + length * 0.95, w * 0.7);
+    add(x + s * w * 0.7, y + length * 0.35, x + s * w, y + length * 0.62, w * 0.75);
+    add(x - s * w * 0.15, y + length * 0.4, x + s * w * 0.4, y + length * 0.58, w * 0.7);
+    add(x + s * w * 0.9, y + length * 0.15, x + s * w * 1.7, y + length * 0.42, w * 0.8);
+  } else if (pose === "fist") {
+    add(x, y + length * 0.25, x + s * 4, y + length * 0.58, w * 1.3);
+    add(x + s * w, y + length * 0.2, x + s * w * 1.5, y + length * 0.48, w * 0.85);
+  } else if (pose === "spread") {
+    for (let i = -1; i <= 1; i++)
+      add(x + s * i * w * 0.35, y + length * 0.3, x + s * i * w * 0.85, y + length * 0.92, w * 0.72);
+    add(x + s * w, y + length * 0.18, x + s * w * 1.8, y + length * 0.48, w * 0.8);
+  } else if (pose === "hold") {
+    add(x - s * 2, y + length * 0.28, x + s * w * 0.4, y + length * 0.7, w * 0.85);
+    add(x + s * w * 0.45, y + length * 0.32, x + s * w, y + length * 0.62, w * 0.8);
+    add(x + s * w * 0.8, y + length * 0.12, x + s * w * 1.6, y + length * 0.4, w * 0.8);
+  } else {
+    for (let i = -1; i <= 1; i++)
+      add(x + s * i * w * 0.55, y + length * 0.28, x + s * i * w * 0.62, y + length * 0.92, w * 0.85);
+    add(x + s * w * 0.7, y + length * 0.16, x + s * w * 1.55, y + length * 0.48, w * 0.9);
+  }
+  return parts;
+}
+
 const LEADS = {
   dot: {
     name: "Dot Lind",
     voice: { id: "af_nicole", speed: 0.96 },
-    hh: 108,
-    heightHH: 4.25,
-    width: 340,
+    hh: 148,
+    heightHH: 4.16,
+    width: 420,
+    hand: 0.5,
     description:
-      "Dot Lind, a claims adjuster for the municipal Office of Anomalous Losses. Rectangle head, blunt bob, slate blazer. Original. No glasses.",
-    parts: {
-      skin: ["#8A5B3A", "#6B432B"],
-      hair: ["#211C24", "#151218"],
-      blazer: ["#4A6385", "#35496A"],
-      shirt: ["#EDE3CC", "#CDBE9E"],
-      trousers: ["#3B3E46", "#2A2C33"],
-      shoes: ["#1F1E23", "#151418"],
-    },
-    hairHighlight: "#3A3342",
-    shoeHighlight: "#3C3B44",
+      "Dot Lind, claims adjuster. Blunt bob, slate blazer, cream shirt. Original. No glasses.",
+    skin: ["#8A5B3A", "#6B432B"],
+    hair: ["#211C24", "#151218"],
+    hairHi: "#3A3342",
+    cloth: ["#4A6385", "#35496A"],
+    shirt: ["#EDE3CC", "#CDBE9E"],
+    pants: ["#3B3E46", "#2A2C33"],
+    shoes: ["#1F1E23", "#151418"],
+    shoeHi: "#3C3B44",
   },
   teo: {
     name: "Teo Lind",
     voice: { id: "am_puck", speed: 1.05 },
-    hh: 100,
-    heightHH: 4.75,
-    width: 360,
+    hh: 140,
+    heightHH: 4.7,
+    width: 420,
+    hand: 0.52,
     description:
-      "Teo Lind, Dot's younger brother. He repairs off-world appliances. Capsule head, curl crown, olive overalls. Original tradesman, not a scientist.",
-    parts: {
-      skin: ["#EBC3A0", "#CC9E7E"],
-      hair: ["#9A4E2C", "#783A1F"],
-      shirt: ["#8E9092", "#707274"],
-      overalls: ["#66704A", "#4C5536"],
-      boots: ["#7A5233", "#5B3C24"],
-    },
+      "Teo Lind, Dot's brother, repairs off-world appliances. Curl crown, beard, olive overalls.",
+    skin: ["#EBC3A0", "#CC9E7E"],
+    hair: ["#9A4E2C", "#783A1F"],
+    hairHi: "#C98B66",
+    cloth: ["#66704A", "#4C5536"],
+    shirt: ["#8E9092", "#707274"],
+    pants: ["#66704A", "#4C5536"],
+    shoes: ["#7A5233", "#5B3C24"],
+    shoeHi: "#E2D3A0",
     buckle: "#B9A46A",
-    buckleHi: "#E2D3A0",
-    freckle: "#C98B66",
   },
   gloam: {
     name: "Gloam",
     voice: { id: "bm_george", speed: 0.9 },
-    hh: 168,
-    heightHH: 2.15,
-    width: 300,
-    description:
-      "Gloam, a centuries-old alien bookkeeper lodging in Dot's spare room. Dome head, pear body, brown vest. Original.",
-    parts: {
-      skin: ["#8AB3A2", "#6B9282"],
-      vest: ["#7A5A44", "#5D4332"],
-    },
+    hh: 200,
+    heightHH: 2.12,
+    width: 380,
+    hand: 0.22,
+    description: "Gloam, an alien bookkeeper. Dome head, pear body, brown vest.",
+    skin: ["#8AB3A2", "#6B9282"],
+    hair: ["#8AB3A2", "#6B9282"],
+    hairHi: "#A9CBBE",
+    cloth: ["#7A5A44", "#5D4332"],
+    shirt: ["#8AB3A2", "#6B9282"],
+    pants: ["#8AB3A2", "#6B9282"],
+    shoes: ["#6B9282", "#567568"],
+    shoeHi: "#A9CBBE",
   },
 };
 
-function mouthVariants(scale = 1) {
-  return visemes.variants.map((variant) => ({
+function mouthGroup(f, x, y, width, canonical, view) {
+  const scale = width / 40;
+  if (!canonical) {
+    return shape(
+      [
+        [x - width * 0.42, y],
+        [x, y + width * 0.08],
+        [x + width * 0.42, y],
+      ],
+      "transparent",
+      "mouth",
+      { open: true, shadow: false, seed: 3 },
+    );
+  }
+  const drawn = visemes.variants.map((variant) => ({
     name: variant.name,
-    children: variant.children.map((shape) => ({
-      ...shape,
-      line: shape.line,
-      seed: shape.seed,
-    })),
-    scale,
+    children: variant.children.map((child) => ({ ...child })),
   }));
+  return group("jaw", x, y, [
+    group("mouth", 0, 0, drawn.find((item) => item.name === "X").children, {
+      x,
+      y,
+      scaleX: scale,
+      scaleY: scale,
+      role: "mouth",
+      variants: drawn,
+    }),
+  ], { role: "jaw" });
 }
 
-function leadAsset(id, options = {}) {
+function eyePair(f, y, radius, canonical, view, aspect = 1) {
+  const prefix = canonical ? "" : `${view}_`;
+  const nodes = [];
+  const place = (side) => {
+    const far = side === "left";
+    const sign = side === "left" ? -1 : 1;
+    let rx = radius;
+    let x = f.cx + sign * 0.142 * f.HH;
+    if (view === "three") {
+      if (far) {
+        rx = radius * 0.7;
+        x = f.cx - 0.06 * f.HH;
+      } else x = f.cx + 0.17 * f.HH;
+    }
+    if (view === "profile") {
+      rx = radius * 0.8;
+      x = f.cx + (0.46 * f.HH - rx);
+    }
+    const id = `${prefix}eye_${side === "near" ? "right" : side}`;
+    nodes.push(
+      group(id, x, y, [
+        ellipse(x, y, rx, rx * aspect, "#F4F0E4", "eye", { id: `${prefix}sclera_${side}`, seed: 5 }),
+        ellipse(x + (view === "three" && !far ? rx * 0.12 : 0), y, Math.max(3.4, rx * 0.22), Math.max(3.4, rx * 0.22), INK, "none", {
+          id: `${prefix}pupil_${side}`,
+          role: canonical ? "pupil" : undefined,
+        }),
+      ], { role: canonical ? "eye" : undefined }),
+    );
+  };
+  if (view === "profile") place("right");
+  else {
+    place("left");
+    place("right");
+  }
+  return nodes;
+}
+
+function brows(f, y, canonical, view) {
+  const sides = view === "profile" ? ["right"] : ["left", "right"];
+  return sides.map((side) => {
+    const sign = side === "left" ? -1 : 1;
+    const x = view === "profile" ? 0.28 : sign * 0.2;
+    const id = canonical ? `brow_${side}` : undefined;
+    return stroke(
+      f,
+      [
+        [x - 0.12, y],
+        [x + 0.12, y - 0.015],
+      ],
+      "interior",
+      {
+        id,
+        role: canonical ? (side === "left" ? "leftBrow" : "rightBrow") : undefined,
+        seed: 6,
+      },
+    );
+  });
+}
+
+function dotHead(f, canonical, view) {
+  const skin = LEADS.dot.skin;
+  const hair = LEADS.dot.hair;
+  const faceW = view === "three" ? 0.92 * 0.95 : 0.92;
+  const nodes = [];
+  if (view === "profile") {
+    nodes.push(
+      fill(f, [
+        [-0.58, 0.2], [-0.42, -0.08], [0.05, -0.12], [0.4, 0.02], [0.46, 0.28],
+        [0.08, 0.34], [-0.22, 0.58], [-0.58, 0.5],
+      ], hair[0], "contour", { id: canonical ? "hair" : undefined, role: canonical ? "hair" : undefined, shadowFill: hair[1], seed: 2 }),
+      fill(f, [
+        [-0.08, 1.02], [-0.02, 0.4], [0.22, 0.02], [0.46, 0.16], [0.44, 0.48],
+        [0.52, 0.58], [0.44, 0.66], [0.38, 0.78], [0.32, 1.02],
+      ], skin[0], "contour", { id: canonical ? "skull" : undefined, shadowFill: skin[1], shadowK: 0.12, seed: 2 }),
+      ...eyePair(f, f.Y(0.42), 0.147 * f.HH, canonical, view),
+      stroke(f, [[0.44, 0.5], [0.52, 0.58], [0.4, 0.66]], "interior", { id: canonical ? "nose" : undefined, seed: 6 }),
+      ...brows(f, 0.22, canonical, view),
+      mouthGroup(f, f.cx + 0.368 * f.HH, f.Y(0.78), 0.3 * 0.92 * f.HH, canonical, view),
+    );
+    return nodes;
+  }
+  const skull = roundRectPts(-faceW / 2, 0.02, faceW, 0.98, 0.2, 0.3).map(([x, y]) => at(f, x, y));
+  const bob = roundRectPts(-0.62, -0.1, 1.24, 0.7, 0.48, 0.08).map(([x, y]) => at(f, x, y));
+  nodes.push(
+    shape(bob, hair[0], "contour", {
+      id: canonical ? "hair" : undefined,
+      role: canonical ? "hair" : undefined,
+      shadowFill: hair[1],
+      shadowK: 0.12,
+      seed: 2,
+    }),
+    ellipse(f.cx - 0.18 * f.HH, f.Y(0.08), 0.16 * f.HH, 0.06 * f.HH, LEADS.dot.hairHi, "none"),
+    shape(skull, skin[0], "contour", {
+      id: canonical ? "skull" : undefined,
+      shadowFill: skin[1],
+      shadowK: 0.12,
+      seed: 2,
+    }),
+    ...eyePair(f, f.Y(0.42), 0.147 * f.HH, canonical, view),
+    fill(f, [
+      [-0.58, 0.02], [-0.15, -0.04], [0.28, -0.02], [0.58, 0.05],
+      [0.56, 0.31], [0.16, 0.33], [-0.18, 0.33], [-0.56, 0.3],
+    ], hair[0], "contour", { shadow: false, seed: 2 }),
+    stroke(
+      f,
+      view === "three"
+        ? [[0.04, 0.52], [-0.1, 0.62], [0.02, 0.68]]
+        : [[-0.02, 0.52], [0.08, 0.62], [-0.02, 0.68]],
+      "interior",
+      { id: canonical ? "nose" : undefined, seed: 6 },
+    ),
+    ...brows(f, 0.22, canonical, view),
+    mouthGroup(
+      f,
+      f.cx + (view === "three" ? -0.12 * 0.92 * f.HH : 0),
+      f.Y(0.78),
+      0.3 * faceW * f.HH,
+      canonical,
+      view,
+    ),
+  );
+  return nodes;
+}
+
+function teoHead(f, canonical, view) {
+  const skin = LEADS.teo.skin;
+  const hair = LEADS.teo.hair;
+  const W = view === "three" ? 0.78 * 0.95 : 0.78;
+  const nodes = [];
+  const spots = [
+    [-0.34, -0.02, 0.11], [-0.18, -0.12, 0.12], [0.02, -0.14, 0.12],
+    [0.2, -0.08, 0.11], [0.34, 0.04, 0.1], [-0.32, 0.12, 0.09], [0.3, 0.16, 0.09],
+  ];
+  spots.forEach((spot, index) => {
+    if (view === "profile" && spot[0] < -0.05) return;
+    const x = f.cx + spot[0] * f.HH * (view === "profile" ? 0.75 : 1) + (view === "three" ? 6 : 0);
+    nodes.push(
+      ellipse(x, f.Y(spot[1] + 0.12), spot[2] * f.HH, spot[2] * f.HH * 0.9, hair[0], "contour", {
+        id: canonical && index === 2 ? "hair" : undefined,
+        role: canonical && index === 2 ? "hair" : undefined,
+        shadow: true,
+        shadowFill: hair[1],
+        shadowK: 0.1,
+        seed: 2 + index,
+      }),
+    );
+  });
+  if (view === "profile") {
+    nodes.push(
+      fill(f, [
+        [-0.04, 1.08], [0.02, 0.28], [0.28, 0.02], [0.48, 0.22], [0.46, 0.5],
+        [0.54, 0.58], [0.42, 0.68], [0.22, 1.08], [-0.02, 1.12],
+      ], skin[0], "contour", { shadowFill: skin[1], shadowK: 0.12, seed: 3 }),
+    );
+  } else {
+    const skull = roundRectPts(-W / 2, 0.02, W, 1.02, 0.36, 0.22).map(([x, y]) => at(f, x, y));
+    nodes.push(shape(skull, skin[0], "contour", { shadowFill: skin[1], shadowK: 0.12, seed: 3 }));
+  }
+  const beardShift = view === "three" ? 0.04 : 0;
+  nodes.push(
+    fill(f, [
+      [-0.34 + beardShift, 0.56], [-0.3, 1.02], [-0.08, 1.12], [0.16, 1.1],
+      [0.36, 0.58], [0.16, 0.7], [0, 0.74], [-0.16, 0.68],
+    ], hair[0], "contour", { shadowFill: hair[1], shadowK: 0.14, seed: 3 }),
+  );
+  for (const [fx, fy] of [[-0.16, 0.48], [-0.08, 0.52], [0.1, 0.5], [0.18, 0.46], [0.04, 0.56]]) {
+    if (view === "profile" && fx < 0) continue;
+    nodes.push(ellipse(f.cx + fx * f.HH, f.Y(fy), 1.6, 1.6, LEADS.teo.hairHi, "none"));
+  }
+  const eyeR = (0.36 * 0.78 * f.HH) / 2;
+  nodes.push(
+    ...eyePair(f, f.Y(0.4), eyeR, canonical, view, 1.06),
+    stroke(
+      f,
+      view === "profile"
+        ? [[0.42, 0.5], [0.54, 0.58], [0.4, 0.66]]
+        : [[0.01, 0.5], [0.1, 0.6], [0, 0.66]],
+      "interior",
+      { id: canonical ? "nose" : undefined, seed: 6 },
+    ),
+    ...brows(f, 0.2, canonical, view),
+    mouthGroup(
+      f,
+      f.cx + (view === "profile" ? 0.28 * f.HH : view === "three" ? -0.12 * W * f.HH : 0),
+      f.Y(0.8),
+      0.3 * W * f.HH,
+      canonical,
+      view,
+    ),
+  );
+  return nodes;
+}
+
+function gloamHead(f, canonical, view) {
+  const skin = LEADS.gloam.skin;
+  const cloth = LEADS.gloam.cloth;
+  const w = view === "profile" ? 0.82 : view === "three" ? 0.95 : 1;
+  const side = [
+    [0, -0.02], [0.2 * w, 0.0], [0.48 * w, 0.18], [0.5 * w, 0.55], [0.36 * w, 0.95],
+    [0.34 * w, 1.08], [0.46 * w, 1.35], [0.48 * w, 1.58], [0.2 * w, 1.78],
+    [0.18 * w, 2.08], [0.04 * w, 2.12], [0, 2.12],
+  ];
+  const outline = view === "profile"
+    ? smoothClosed([
+      [-0.06, 2.1], [0.02, 1.2], [0.12, 0.35], [0.42, 0.05], [0.5, 0.5],
+      [0.34, 1.0], [0.46, 1.45], [0.28, 1.75], [0.16, 2.1],
+    ])
+    : smoothClosed([...side, ...side.slice(1, -1).reverse().map(([x, y]) => [-x, y])]);
+  const vest = smoothClosed(view === "profile"
+    ? [[0.04, 1.14], [0.32, 1.08], [0.3, 1.48], [0.04, 1.5]]
+    : [[-0.28 * w, 1.16], [-0.1 * w, 1.28], [0, 1.22], [0.1 * w, 1.28], [0.28 * w, 1.16], [0.26 * w, 1.5], [-0.26 * w, 1.5]]);
+  const eyeR = (0.3 * f.HH) / 2;
+  return [
+    shape(outline.map(([x, y]) => at(f, x, y)), skin[0], "contour", {
+      id: canonical ? "skull" : undefined,
+      shadowFill: skin[1],
+      shadowK: 0.12,
+      seed: 2,
+    }),
+    shape(vest.map(([x, y]) => at(f, x, y)), cloth[0], "contour", { shadowFill: cloth[1], shadowK: 0.14, seed: 4 }),
+    ...eyePair(f, f.Y(0.45), eyeR * (view === "profile" ? 0.8 : 1), canonical, view),
+    mouthGroup(
+      f,
+      f.cx + (view === "profile" ? 0.18 * f.HH : view === "three" ? -0.05 * f.HH : 0),
+      f.Y(0.7),
+      0.18 * f.HH,
+      canonical,
+      view,
+    ),
+  ];
+}
+
+function shoes(f, spec, signs) {
+  return signs.flatMap((sign) => [
+    fill(f, [
+      [sign * 0.02, spec.ankle],
+      [sign * 0.32, spec.ankle],
+      [sign * 0.36, spec.ankle + 0.12],
+      [sign * 0.0, spec.ankle + 0.1],
+    ], spec.colors[0], "contour", { shadowFill: spec.colors[1], seed: 7 }),
+    ellipse(f.cx + sign * 0.18 * f.HH, f.Y(spec.ankle + 0.03), 7, 2.5, spec.hi, "none"),
+  ]);
+}
+
+function dotOutfit(f, view) {
+  const spec = LEADS.dot;
+  const parts = [];
+  if (view === "profile") {
+    parts.push(
+      fill(f, [
+        [-0.02, 1.02], [0.14, 1.02], [0.2, 1.16], [0.52, 1.2], [0.46, 1.85],
+        [0.4, 2.34], [0.08, 2.38], [0.02, 1.2],
+      ], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadowK: 0.12, seed: 4 }),
+      fill(f, [[0.16, 1.18], [0.34, 1.16], [0.28, 1.7], [0.14, 1.55]], spec.shirt[0], "contour", { shadowFill: spec.shirt[1], shadow: false, seed: 4 }),
+    );
+    return parts;
+  }
+  const tuck = view === "three" ? 0.1 : 0;
+  parts.push(
+    fill(f, [[-0.12, 0.98], [0.12, 0.98], [0.14, 1.24], [-0.14, 1.24]], spec.skin[0], "contour", { shadowFill: spec.skin[1], shadowK: 0.16, seed: 4 }),
+    fill(f, [
+      [-0.52 + tuck, 1.24], [-0.46 + tuck, 1.08], [-0.18, 1.16], [-0.08, 1.86],
+      [0.08, 1.86], [0.18, 1.16], [0.46, 1.08], [0.52, 1.24],
+      [0.48, 2.12], [0.4, 2.52], [-0.38 + tuck * 0.4, 2.52], [-0.48 + tuck, 2.12],
+    ], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadowK: 0.12, role: "body", seed: 4 }),
+    fill(f, [[-0.1, 1.2], [0, 1.78], [0.1, 1.2]], spec.shirt[0], "contour", { shadowFill: spec.shirt[1], shadow: false, seed: 4 }),
+    fill(f, [[-0.2, 1.16], [-0.02, 1.22], [-0.06, 1.72], [-0.18, 1.4]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadow: false, seed: 4 }),
+    fill(f, [[0.02, 1.22], [0.2, 1.16], [0.18, 1.4], [0.06, 1.72]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadow: false, seed: 4 }),
+    ellipse(f.cx, f.Y(1.92), 4, 4, spec.cloth[1], "interior", { shadow: false }),
+    fill(f, [[-0.46, 1.72], [-0.24, 1.7], [-0.22, 1.96], [-0.48, 1.98]], spec.cloth[0], "contour", { shadow: false, seed: 5 }),
+    fill(f, [[0.24, 1.7], [0.46, 1.72], [0.48, 1.98], [0.22, 1.96]], spec.cloth[0], "contour", { shadow: false, seed: 5 }),
+    stroke(f, [[-0.46, 1.72], [0.46, 1.72]], "interior", { seed: 5 }),
+  );
+  return parts;
+}
+
+function teoOutfit(f, view) {
+  const spec = LEADS.teo;
+  const parts = [];
+  if (view === "profile") {
+    parts.push(
+      fill(f, [[0.02, 1.05], [0.16, 1.08], [0.48, 1.2], [0.4, 2.2], [0.28, 2.55], [0.06, 2.5]], spec.shirt[0], "contour", { shadowFill: spec.shirt[1], seed: 4 }),
+      fill(f, [[0.08, 1.18], [0.42, 1.22], [0.36, 2.58], [0.1, 2.55]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], seed: 4 }),
+    );
+    return parts;
+  }
+  parts.push(
+    fill(f, [[-0.1, 0.98], [0.1, 0.98], [0.12, 1.28], [-0.12, 1.28]], spec.skin[0], "contour", { shadowFill: spec.skin[1], shadowK: 0.16, seed: 4 }),
+    fill(f, [
+      [-0.48, 1.18], [-0.16, 1.12], [0.16, 1.12], [0.48, 1.18],
+      [0.42, 2.2], [0.22, 2.55], [-0.22, 2.55], [-0.42, 2.2],
+    ], spec.shirt[0], "contour", { shadowFill: spec.shirt[1], shadowK: 0.12, seed: 4 }),
+    fill(f, [
+      [-0.34, 1.35], [-0.16, 1.42], [0.16, 1.42], [0.34, 1.35],
+      [0.4, 2.7], [0.16, 2.78], [-0.16, 2.78], [-0.4, 2.7],
+    ], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadowK: 0.12, role: "body", seed: 4 }),
+    fill(f, [[-0.28, 1.12], [-0.2, 1.16], [-0.18, 1.42], [-0.3, 1.38]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadow: false, seed: 5 }),
+    fill(f, [[0.2, 1.16], [0.28, 1.12], [0.3, 1.38], [0.18, 1.42]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], shadow: false, seed: 5 }),
+    ellipse(f.cx - 0.24 * f.HH, f.Y(1.28), 6, 4, spec.buckle, "prop", { shadow: false }),
+    ellipse(f.cx + 0.24 * f.HH, f.Y(1.28), 6, 4, spec.buckle, "prop", { shadow: false }),
+    ellipse(f.cx - 0.24 * f.HH, f.Y(1.27), 2.5, 1.4, spec.shoeHi, "none"),
+    ellipse(f.cx + 0.24 * f.HH, f.Y(1.27), 2.5, 1.4, spec.shoeHi, "none"),
+    fill(f, [[-0.16, 1.7], [0.16, 1.7], [0.16, 2.05], [-0.16, 2.05]], spec.cloth[1], "interior", { shadow: false, seed: 5 }),
+    fill(f, [[-0.02, 1.78], [0.03, 1.78], [0.04, 2.02], [-0.03, 2.02]], "#C7B27A", "prop", { shadow: false, seed: 5 }),
+  );
+  return parts;
+}
+
+function gloamOutfit() {
+  return [];
+}
+
+function arms(id, f, view, canonical) {
+  const spec = LEADS[id];
+  const shoulderY = id === "gloam" ? 1.12 : 1.22;
+  const elbowY = id === "gloam" ? 1.42 : id === "teo" ? 2.02 : 1.95;
+  const wristY = id === "gloam" ? 1.62 : id === "teo" ? 2.82 : 2.58;
+  const reach = id === "gloam" ? 0.36 : id === "teo" ? 0.46 : 0.5;
+  const elbowOut = id === "gloam" ? 0.4 : reach + 0.06;
+  const upperW = f.HH * (id === "gloam" ? 0.18 : id === "dot" ? 0.32 : 0.2);
+  const lowerW = upperW * 0.82;
+  const fillColor = id === "teo" ? spec.shirt[0] : id === "dot" ? spec.cloth[0] : spec.skin[0];
+  const shadow = id === "teo" ? spec.shirt[1] : id === "dot" ? spec.cloth[1] : spec.skin[1];
+  const sides = view === "profile" ? ["right"] : ["left", "right"];
+  const nodes = { far: [], near: [] };
+  for (const side of sides) {
+    const sign = side === "left" ? -1 : 1;
+    const prefix = canonical ? "" : `${view}_`;
+    const shoulder = at(f, sign * (id === "gloam" ? 0.3 : id === "teo" ? 0.38 : 0.46), shoulderY);
+    const elbow = at(f, sign * elbowOut, elbowY);
+    const wrist = at(f, sign * reach, wristY);
+    const poses = ["relaxed", "point", "fist", "spread", "hold"];
+    const hand = (pose) => handDraw(wrist[0], wrist[1], spec.skin[0], spec.skin[1], side, pose, spec.hand * f.HH);
+    const upperId = `${prefix}${side}_upper_arm`;
+    const node = group(upperId, shoulder[0], shoulder[1], [
+      limb(`${upperId}_shape`, shoulder, elbow, upperW, upperW * 0.86, fillColor, shadow),
+      group(`${prefix}${side}_forearm`, elbow[0], elbow[1], [
+        limb(`${prefix}${side}_fore_shape`, elbow, wrist, upperW * 0.86, lowerW, fillColor, shadow),
+        ...(id === "dot"
+          ? [ellipse(wrist[0], wrist[1] - 4, lowerW * 0.46, 6, spec.shirt[0], "contour", { shadow: false })]
+          : []),
+        group(`${prefix}${side}_hand`, wrist[0], wrist[1], hand("relaxed"), {
+          role: canonical ? "hand" : undefined,
+          ...(canonical
+            ? { variants: poses.map((pose) => ({ name: pose, children: hand(pose) })) }
+            : {}),
+        }),
+      ]),
+    ], { role: canonical ? (side === "left" ? "leftArm" : "rightArm") : undefined });
+    (side === "left" ? nodes.far : nodes.near).push(node);
+  }
+  return nodes;
+}
+
+function legs(id, f, view, canonical) {
+  if (id === "gloam") return { far: [], near: [] };
+  const spec = LEADS[id];
+  const hipY = id === "teo" ? 2.48 : 2.32;
+  const kneeY = id === "teo" ? 3.65 : 3.3;
+  const ankleY = id === "teo" ? 4.55 : 4.08;
+  const x = 0.13;
+  const w = f.HH * (id === "teo" ? 0.3 : 0.28);
+  const sides = view === "profile" ? ["right"] : ["left", "right"];
+  const out = { far: [], near: [] };
+  for (const side of sides) {
+    const sign = side === "left" ? -1 : 1;
+    const prefix = canonical ? "" : `${view}_`;
+    const hip = at(f, sign * x, hipY);
+    const knee = at(f, sign * (x + 0.02), kneeY);
+    const ankle = at(f, sign * x, ankleY);
+    const node = group(`${prefix}${side}_thigh`, hip[0], hip[1], [
+      limb(`${prefix}${side}_thigh_shape`, hip, knee, w, w * 0.9, spec.pants[0], spec.pants[1]),
+      group(`${prefix}${side}_shin`, knee[0], knee[1], [
+        limb(`${prefix}${side}_shin_shape`, knee, ankle, w * 0.9, w * 0.78, spec.pants[0], spec.pants[1]),
+        ...(id === "teo"
+          ? [
+            shape(limbPolygon(ankle[0], ankle[1], ankle[0] + sign * w * 0.35, ankle[1] + f.HH * 0.16, w * 0.9, w * 0.7), spec.shoes[0], "contour", {
+              shadowFill: spec.shoes[1],
+              seed: 7,
+            }),
+            ellipse(ankle[0] + sign * 8, ankle[1] + 8, 8, 3, spec.shoeHi, "none"),
+          ]
+          : [
+            shape(
+              [
+                [ankle[0] - w * 0.2, ankle[1] - 2],
+                [ankle[0] + sign * w * 0.15, ankle[1] - 2],
+                [ankle[0] + sign * w * 0.55, ankle[1] + 14],
+                [ankle[0] - w * 0.35, ankle[1] + 12],
+              ],
+              spec.shoes[0],
+              "contour",
+              { shadowFill: spec.shoes[1], seed: 7 },
+            ),
+            ellipse(ankle[0] + sign * 6, ankle[1] + 4, 7, 2.4, spec.shoeHi, "none"),
+          ]),
+      ]),
+    ], { role: canonical ? (side === "left" ? "leftLeg" : "rightLeg") : undefined });
+    (side === "left" ? out.far : out.near).push(node);
+  }
+  return out;
+}
+
+function backFigure(id, f) {
+  const spec = LEADS[id];
+  if (id === "gloam") {
+    return [
+      shape(ellipsePts(f.cx, f.Y(1.42), 0.46 * f.HH, 0.5 * f.HH, 32), spec.skin[0], "contour", { shadowFill: spec.skin[1], seed: 2 }),
+      shape(ellipsePts(f.cx, f.Y(0.46), 0.5 * f.HH, 0.5 * f.HH, 36), spec.skin[0], "contour", { shadowFill: spec.skin[1], seed: 2 }),
+      fill(f, [[-0.3, 1.08], [0.3, 1.08], [0.28, 1.5], [-0.28, 1.5]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], seed: 4 }),
+    ];
+  }
+  const hair = id === "dot"
+    ? [shape(roundRectPts(-0.62, -0.1, 1.24, 0.68, 0.48, 0.1).map(([x, y]) => at(f, x, y)), spec.hair[0], "contour", { shadowFill: spec.hair[1], seed: 2 })]
+    : [[-0.34, -0.02, 0.11], [0, -0.12, 0.12], [0.28, -0.04, 0.11], [-0.2, 0.1, 0.1], [0.22, 0.12, 0.09]].map((spot, index) =>
+      ellipse(f.cx + spot[0] * f.HH, f.Y(spot[1] + 0.14), spot[2] * f.HH, spot[2] * f.HH, spec.hair[0], "contour", {
+        shadow: true,
+        shadowFill: spec.hair[1],
+        seed: index + 2,
+      }));
+  const cloth = id === "dot" ? spec.cloth : spec.shirt;
+  const body = id === "dot" ? spec.cloth : spec.cloth;
+  return [
+    ...hair,
+    fill(f, [[-0.12, 0.95], [0.12, 0.95], [0.14, 1.22], [-0.14, 1.22]], id === "dot" ? spec.skin[0] : spec.skin[0], "contour", { shadowFill: spec.skin[1], seed: 3 }),
+    fill(f, [
+      [-0.62, 1.18], [-0.2, 1.1], [0.2, 1.1], [0.62, 1.18], [0.52, 2.34], [-0.52, 2.34],
+    ], id === "dot" ? spec.cloth[0] : cloth[0], "contour", { shadowFill: id === "dot" ? spec.cloth[1] : cloth[1], seed: 4 }),
+    ...(id === "teo"
+      ? [
+        fill(f, [[-0.22, 1.16], [-0.08, 1.55], [0.08, 1.55], [0.22, 1.16], [0.16, 1.2], [-0.16, 1.2]], spec.cloth[0], "contour", { shadowFill: spec.cloth[1], seed: 5 }),
+        fill(f, [[-0.36, 2.2], [0.36, 2.2], [0.34, 4.55], [-0.34, 4.55]], spec.pants[0], "contour", { shadowFill: spec.pants[1], seed: 5 }),
+      ]
+      : [
+        stroke(f, [[0, 1.2], [0, 2.2]], "interior", { seed: 5 }),
+        fill(f, [[-0.28, 2.28], [0.28, 2.28], [0.26, 4.08], [-0.26, 4.08]], spec.pants[0], "contour", { shadowFill: spec.pants[1], seed: 5 }),
+      ]),
+    ...shoes(f, { colors: spec.shoes, hi: spec.shoeHi, ankle: id === "teo" ? 4.55 : 4.08 }, [-1, 1]),
+  ];
+}
+
+function buildFigure(id, view, canonical) {
+  const f = frameFor(id);
+  if (view === "back") return backFigure(id, f);
+  const headParts = id === "dot" ? dotHead(f, canonical, view) : id === "teo" ? teoHead(f, canonical, view) : gloamHead(f, canonical, view);
+  const head = group(canonical ? "head" : `head_${view}`, f.cx, f.Y(0.4), headParts, {
+    role: canonical ? "head" : undefined,
+  });
+  const arm = arms(id, f, view, canonical);
+  const leg = legs(id, f, view, canonical);
+  const outfit = id === "dot" ? dotOutfit(f, view) : id === "teo" ? teoOutfit(f, view) : gloamOutfit();
+  return [...arm.far, ...leg.far, ...outfit, ...leg.near, head, ...arm.near];
+}
+
+export function leadLimbs(id = "dot") {
+  const f = frameFor(id);
+  const shoulderY = id === "gloam" ? 1.12 : 1.22;
+  const elbowY = id === "gloam" ? 1.42 : id === "teo" ? 2.02 : 1.95;
+  const wristY = id === "gloam" ? 1.62 : id === "teo" ? 2.82 : 2.58;
+  const reach = id === "gloam" ? 0.36 : id === "teo" ? 0.46 : 0.5;
+  const elbowOut = id === "gloam" ? 0.4 : reach + 0.06;
+  const shoulderX = id === "gloam" ? 0.3 : id === "teo" ? 0.38 : 0.46;
+  const arm = (sign) => ({
+    shoulder: { x: f.cx + sign * f.HH * shoulderX, y: f.Y(shoulderY) },
+    elbow: { x: f.cx + sign * f.HH * elbowOut, y: f.Y(elbowY) },
+    wrist: { x: f.cx + sign * f.HH * reach, y: f.Y(wristY) },
+  });
+  return { left: arm(-1), right: arm(1) };
+}
+
+export const DOT_LIMBS = leadLimbs("dot");
+
+export function buildLead(id, options = {}) {
   const spec = LEADS[id];
   if (!spec) throw new Error("Unknown lead.");
-  const HH = spec.hh;
-  const cx = spec.width / 2;
-  const top = 28;
-  const X = (x) => cx + x * HH;
-  const Y = (y) => top + y * HH;
-  const map = (pts) => pts.map(([x, y]) => [X(x), Y(y)]);
-  const P = (pts, fill, line, extra = {}) => ({
-    type: "path",
-    path: pathFrom(pts, extra.open ? false : true),
-    fill: extra.open ? "transparent" : fill,
-    stroke: line === "none" || line === "detail" ? extra.stroke || fill : INK,
-    strokeWidth: 0,
-    line,
-    shadow: extra.shadow !== false && !extra.open && line !== "none" && line !== "detail" && line !== "interior" && line !== "mouth",
-    shadowK: extra.shadowK ?? (line === "contour" ? 0.14 : 0.18),
-    seed: extra.seed ?? 1,
-    ...extra,
-  });
-  const E = (x, y, rx, ry, fill, line, extra = {}) => ({
-    type: "ellipse",
-    x,
-    y,
-    rx,
-    ry,
-    fill,
-    stroke: line === "none" ? "none" : INK,
-    strokeWidth: 0,
-    line,
-    shadow: extra.shadow === true,
-    seed: extra.seed ?? 1,
-    ...extra,
-  });
-  const G = (gid, px, py, children, extra = {}) => ({
-    type: "group",
-    id: gid,
-    pivotX: px,
-    pivotY: py,
-    children,
-    ...extra,
-  });
-  const headSpec = HEADS[id];
-  const [lx, rx] = eyes(headSpec);
-  const eyeShapes = (prefix, sideScale = 1) => {
-    const nodes = [];
-    for (const [ex, ey, erx, ery] of [lx, rx]) {
-      const side = ex < 0 ? "left" : "right";
-      if (prefix === "pf_" && side === "left") continue;
-      const s = prefix === "pf_" ? 0.8 : prefix === "tq_" && side === "left" ? 0.7 : sideScale;
-      const shift = prefix === "tq_" && side === "left" ? headSpec.W * 0.2 : prefix === "pf_" ? headSpec.W * 0.08 : 0;
-      const x = X(ex * (prefix === "tq_" ? 0.9 : 1) + shift);
-      const y = Y(ey);
-      nodes.push(
-        G(`${prefix}eye_${side}`, x, y, [
-          E(x, y, erx * HH * s, ery * HH * s, "#F4F0E4", "eye", {
-            id: `${prefix}sclera_${side}`,
-            shadow: false,
-          }),
-          E(
-            x,
-            y,
-            Math.max(2.2, erx * HH * s * 0.11),
-            Math.max(2.2, erx * HH * s * 0.11),
-            INK,
-            "none",
-            { id: `${prefix}pupil_${side}`, shadow: false, role: "pupil" },
-          ),
-        ], { role: "eye" }),
-      );
-    }
-    return nodes;
-  };
-  const skull = map(headSpec.skull());
-  const neck = headSpec.neck ? map(headSpec.neck()) : map([[-0.16, 0.92], [0.16, 0.92], [0.18, 1.15], [-0.18, 1.15]]);
-  const nose = headSpec.nose ? P(map(headSpec.nose()), "transparent", "interior", { open: true, id: "nose", role: "decoration", shadow: false, stroke: INK }) : null;
-  const mouthW = headSpec.mouthW * HH;
-  const mouthScale = mouthW / 40;
-  const mouth = G("mouth", X(0), Y(headSpec.mouthY), visemes.variants.map(() => []) && [
-    {
-      type: "group",
-      id: "mouth_draw",
-      x: X(0),
-      y: Y(headSpec.mouthY),
-      scaleX: mouthScale,
-      scaleY: mouthScale,
-      role: "mouth",
-      children: [],
-      variants: visemes.variants.map((variant) => ({
-        name: variant.name,
-        children: variant.children.map((shape) => ({ ...shape })),
-      })),
-    },
-  ]);
-  // The inner group carries the drawing; outer jaw is the pivot.
-  const jaw = G("jaw", X(0), Y(headSpec.mouthY), [
-    {
-      type: "group",
-      id: "mouth",
-      x: X(0),
-      y: Y(headSpec.mouthY),
-      pivotX: X(0),
-      pivotY: Y(headSpec.mouthY),
-      scaleX: mouthScale,
-      scaleY: mouthScale,
-      role: "mouth",
-      children: visemes.variants[0].children.map((shape) => ({ ...shape })),
-      variants: visemes.variants.map((variant) => ({
-        name: variant.name,
-        children: variant.children.map((shape) => ({ ...shape })),
-      })),
-    },
-  ], { role: "jaw" });
-
-  const limb = (gid, role, a, b, width, fill, shadow) => {
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = (-dy / len) * width * 0.5;
-    const ny = (dx / len) * width * 0.5;
-    const overlap = width * 0.22;
-    const ux = (dx / len) * overlap;
-    const uy = (dy / len) * overlap;
-    return G(gid, a[0], a[1], [
-      E(a[0], a[1], width * 0.52, width * 0.52, fill, "none", { shadow: false }),
-      P(
-        [
-          [a[0] + nx - ux, a[1] + ny - uy],
-          [a[0] - nx - ux, a[1] - ny - uy],
-          [b[0] - nx + ux, b[1] - ny + uy],
-          [b[0] + nx + ux, b[1] + ny + uy],
-        ],
-        fill,
-        "contour",
-        { shadow: true, shadowK: 0.2 },
-      ),
-    ], { role });
-  };
-
-  const yShoulder = Y(1.22);
-  const yElbow = Y(id === "gloam" ? 1.45 : 1.95);
-  const yWrist = Y(id === "gloam" ? 1.58 : 2.6);
-  const yHip = Y(id === "gloam" ? 1.55 : id === "teo" ? 2.6 : 2.35);
-  const yKnee = Y(id === "gloam" ? 1.85 : id === "teo" ? 3.65 : 3.3);
-  const yAnkle = Y(id === "gloam" ? 2.05 : id === "teo" ? 4.6 : 4.1);
-  const armW = HH * (id === "gloam" ? 0.16 : 0.2);
-  const legW = HH * (id === "gloam" ? 0.18 : 0.22);
-  const cloth = id === "dot" ? spec.parts.blazer : id === "teo" ? spec.parts.overalls : spec.parts.skin;
-  const legCloth = id === "dot" ? spec.parts.trousers : id === "teo" ? spec.parts.overalls : spec.parts.skin;
-  const armFill = id === "teo" ? spec.parts.shirt[0] : id === "dot" ? spec.parts.blazer[0] : spec.parts.skin[0];
-
-  const hand = (side, wrist) => {
-    const x = wrist[0];
-    const y = wrist[1];
-    const s = side === "left" ? -1 : 1;
-    const skin = spec.parts.skin[0];
-    const relaxed = [
-      P(
-        [
-          [x - 8 * s, y],
-          [x + 10 * s, y - 4],
-          [x + 14 * s, y + 18],
-          [x + 6 * s, y + 28],
-          [x - 8 * s, y + 24],
-          [x - 14 * s, y + 10],
-        ],
-        skin,
-        "contour",
-        { shadowK: 0.2 },
-      ),
-    ];
-    return G(`${side}_hand`, x, y, relaxed, {
-      role: "hand",
-      variants: [
-        { name: "relaxed", children: relaxed },
-        { name: "point", children: relaxed },
-        { name: "fist", children: relaxed },
-        { name: "spread", children: relaxed },
-        { name: "hold", children: relaxed },
-      ],
-    });
-  };
-
-  const arm = (side) => {
-    const sign = side === "left" ? -1 : 1;
-    const shoulder = [X(sign * (id === "gloam" ? 0.28 : 0.46)), yShoulder];
-    const elbow = [X(sign * (id === "gloam" ? 0.34 : 0.5)), yElbow];
-    const wrist = [X(sign * (id === "gloam" ? 0.32 : 0.55)), yWrist];
-    return G(
-      `${side}_upper_arm`,
-      shoulder[0],
-      shoulder[1],
-      [
-        limb(`${side}_upper`, side === "left" ? "leftArm" : "rightArm", shoulder, elbow, armW, armFill),
-        G(`${side}_forearm`, elbow[0], elbow[1], [
-          limb(`${side}_fore`, "decoration", elbow, wrist, armW * 0.92, id === "dot" ? spec.parts.shirt[0] : armFill),
-          hand(side, wrist),
-        ]),
-      ],
-      { role: side === "left" ? "leftArm" : "rightArm" },
-    );
-  };
-
-  const leg = (side) => {
-    const sign = side === "left" ? -1 : 1;
-    const hip = [X(sign * 0.14), yHip];
-    const knee = [X(sign * 0.14), yKnee];
-    const ankle = [X(sign * 0.15), yAnkle];
-    const shoe = spec.parts.shoes || spec.parts.boots || spec.parts.skin;
-    return G(
-      `${side}_thigh`,
-      hip[0],
-      hip[1],
-      [
-        limb(`${side}_thigh_shape`, side === "left" ? "leftLeg" : "rightLeg", hip, knee, legW, legCloth[0]),
-        G(`${side}_shin`, knee[0], knee[1], [
-          limb(`${side}_shin_shape`, "decoration", knee, ankle, legW * 0.9, legCloth[0]),
-          G(`${side}_foot`, ankle[0], ankle[1], [
-            P(
-              [
-                [ankle[0] - 16, ankle[1]],
-                [ankle[0] + 22, ankle[1] + 2],
-                [ankle[0] + 20, ankle[1] + 16],
-                [ankle[0] - 18, ankle[1] + 14],
-              ],
-              shoe[0],
-              "contour",
-              { shadowK: 0.16 },
-            ),
-            E(ankle[0] + 6, ankle[1] + 4, 5, 2.2, spec.shoeHighlight || shoe[0], "none", {
-              shadow: false,
-            }),
-          ]),
-        ]),
-      ],
-      { role: side === "left" ? "leftLeg" : "rightLeg" },
-    );
-  };
-
-  const torsoPath = map(
-    id === "gloam"
-      ? [[-0.34, 1.05], [0.34, 1.05], [0.42, 1.55], [0.28, 1.7], [-0.28, 1.7], [-0.42, 1.55]]
-      : id === "teo"
-        ? [[-0.42, 1.15], [0.42, 1.15], [0.34, 2.55], [-0.34, 2.55]]
-        : [[-0.48, 1.15], [0.48, 1.15], [0.4, 2.3], [-0.4, 2.3]],
-  );
-  const shirtPath = map(
-    id === "dot"
-      ? [[-0.16, 1.16], [0.16, 1.16], [0.12, 2.05], [-0.12, 2.05]]
-      : id === "teo"
-        ? [[-0.28, 1.16], [0.28, 1.16], [0.22, 2.2], [-0.22, 2.2]]
-        : [],
-  );
-  const vest = id === "gloam"
-    ? map([[-0.3, 1.12], [0.3, 1.12], [0.26, 1.48], [-0.26, 1.48]])
-    : null;
-
-  const hair = () => {
-    if (id === "teo") {
-      const curls = headSpec.hairBack();
-      return curls.map((curl, index) =>
-        E(X(curl[0]), Y(curl[1]), curl[2] * HH, curl[2] * HH, spec.parts.hair[0], "contour", {
-          id: index === 0 ? "hair" : undefined,
-          role: index === 0 ? "hair" : undefined,
-          shadow: true,
-          shadowK: 0.12,
-        }),
-      );
-    }
-    if (id === "gloam") return [];
-    return [
-      P(map(headSpec.hairBack()), spec.parts.hair[0], "contour", {
-        id: "hair",
-        role: "hair",
-        shadowK: 0.12,
-      }),
-      P(map(headSpec.fringe()), spec.parts.hair[0], "contour", { shadow: false }),
-      E(X(-0.05), Y(0.12), HH * 0.12, HH * 0.04, spec.hairHighlight, "none", {
-        shadow: false,
-      }),
-    ];
-  };
-
-  const brows = () => {
-    if (id === "gloam") return [];
-    const y = headSpec.eyeY - 0.1;
-    return ["left", "right"].map((side) => {
-      const sign = side === "left" ? -1 : 1;
-      return P(
-        map([
-          [sign * 0.22, y],
-          [sign * 0.05, y - 0.01],
-        ]),
-        "transparent",
-        "interior",
-        {
-          open: true,
-          id: `brow_${side}`,
-          role: side === "left" ? "leftBrow" : "rightBrow",
-          shadow: false,
-        },
-      );
-    });
-  };
-
-  const frontFace = [
-    ...hair().filter((shape) => shape.role === "hair" || shape.id === "hair"),
-    P(skull, spec.parts.skin[0], "contour", { id: "skull", shadowK: 0.12 }),
-    ...hair().filter((shape) => shape.id !== "hair" && shape.role !== "hair"),
-    ...eyeShapes(""),
-    ...brows(),
-    ...(nose ? [nose] : []),
-    ...(id === "teo"
-      ? [P(map(headSpec.beard()), spec.parts.hair[0], "contour", { shadowK: 0.12 })]
-      : []),
-    ...(id === "teo"
-      ? [0, 1, 2].map((i) =>
-          E(X(-0.12 + i * 0.08), Y(0.5), 1.6, 1.6, spec.freckle, "none", { shadow: false }),
-        )
-      : []),
-  ];
-  const threeFace = [
-    P(
-      map(headSpec.skull()).map(([x, y]) => [cx + (x - cx) * 0.95, y]),
-      spec.parts.skin[0],
-      "contour",
-      { shadowK: 0.12 },
+  const primary = options.primaryView || "front";
+  const viewName = { front: "front", threeQuarter: "three", profile: "profile", back: "back" };
+  const primaryKey = viewName[primary] || "front";
+  const shapes = ["front", "three", "profile", "back"].map((view) =>
+    group(
+      view === "three" ? "turn_three" : `turn_${view}`,
+      spec.width / 2,
+      80,
+      buildFigure(id, view, primaryKey === view),
+      { turnaround: true },
     ),
-    ...eyeShapes("tq_"),
-    ...(headSpec.nose
-      ? [
-          P(map(headSpec.nose()), "transparent", "interior", {
-            open: true,
-            shadow: false,
-            stroke: INK,
-          }),
-        ]
-      : []),
-  ];
-  const profileSkull = map([
-    [-0.02, 0.08],
-    [0.28, 0.02],
-    [0.42, 0.35],
-    [0.46, 0.58],
-    [0.36, 0.92],
-    [0.08, 1],
-    [-0.08, 0.7],
-    [-0.06, 0.3],
-  ]);
-  const profileFace = [
-    P(profileSkull, spec.parts.skin[0], "contour", { shadowK: 0.12 }),
-    ...eyeShapes("pf_"),
-    ...(headSpec.nose
-      ? [
-          P(
-            [
-              [X(0.4), Y(0.55)],
-              [X(0.52), Y(0.62)],
-              [X(0.38), Y(0.66)],
-            ],
-            "transparent",
-            "interior",
-            { open: true, shadow: false },
-          ),
-        ]
-      : []),
-  ];
-
-  const shapes = [
-    leg("left"),
-    leg("right"),
-    arm("left"),
-    G("torso", X(0), Y(id === "teo" ? 2.25 : 2.2), [
-      P(neck, spec.parts.skin[0], "contour", { shadowK: 0.16 }),
-      P(torsoPath, id === "gloam" ? spec.parts.skin[0] : cloth[0], "contour", {
-        id: "torso_fill",
-        role: "body",
-        shadowK: 0.12,
-      }),
-      ...(shirtPath.length ? [P(shirtPath, spec.parts.shirt[0], "contour", { shadowK: 0.12 })] : []),
-      ...(vest ? [P(vest, spec.parts.vest[0], "contour", { shadowK: 0.12 })] : []),
-      ...(id === "teo"
-        ? [
-            E(X(0), Y(1.7), 7, 5, spec.buckle, "prop", { shadow: false }),
-            E(X(0), Y(1.7), 3, 2, spec.buckleHi, "none", { shadow: false }),
-          ]
-        : []),
-      ...(id === "dot"
-        ? [
-            P(
-              map([
-                [-0.22, 1.7],
-                [0.02, 1.68],
-                [0.04, 1.95],
-                [-0.2, 1.98],
-              ]),
-              "#2C3038",
-              "prop",
-              { id: "tablet", shadow: false },
-            ),
-            E(X(-0.08), Y(1.82), 8, 5, "#6F7B8C", "none", { shadow: false }),
-          ]
-        : []),
-    ], { role: "body" }),
-    arm("right"),
-    G(
-      "head",
-      X(0),
-      Y(1.02),
-      [
-        G("turn_front", X(0), Y(0.4), [...frontFace, jaw]),
-        G("turn_three", X(0), Y(0.4), [...threeFace, jaw && { type: "group", id: "jaw_tq_skip", children: [] }].filter(Boolean)),
-        G("turn_profile", X(0), Y(0.4), profileFace),
-      ],
-      { role: "head", turnaround: true },
-    ),
-  ];
-
-  // Jaw must be visible in front only; it is inside turn_front. Profile has no shared mouth
-  // because variant IDs must be unique. Front carries the lip-sync mouth.
-  const asset = {
+  );
+  return validateAsset({
     id: options.id || id,
     name: options.name || spec.name,
     kind: "character",
     description: spec.description,
     width: spec.width,
-    height: Math.ceil(top + spec.heightHH * HH + 24),
+    height: Math.ceil(28 + spec.heightHH * spec.hh + 4),
     voice: spec.voice,
     shapes,
-  };
-  return validateAsset(asset);
+  });
 }
 
-export const CAST = [
-  { id: "dot", name: "Dot Lind", kind: "character", description: LEADS.dot.description },
-  { id: "teo", name: "Teo Lind", kind: "character", description: LEADS.teo.description },
-  { id: "gloam", name: "Gloam", kind: "character", description: LEADS.gloam.description },
-];
+export const CAST = ["dot", "teo", "gloam"].map((id) => ({
+  id,
+  name: LEADS[id].name,
+  kind: "character",
+  description: LEADS[id].description,
+  defaultParameters: { ink: INK },
+}));
 
-export function buildLead(id, options) {
-  return leadAsset(id, options);
+export function castShowcase() {
+  return validateEpisode({
+    version: 1,
+    title: "Lind house",
+    logline: "Dot, Teo and Gloam.",
+    genre: "Adult animated sitcom",
+    style: "Flat cel, ink on characters, local colour on the set.",
+    assets: ["dot", "teo", "gloam"].map((id) => buildLead(id)),
+    scenes: [
+      {
+        id: "lineup",
+        name: "Lineup",
+        duration: 4,
+        background: "#E0D3B4",
+        lightAngleDeg: 135,
+        contactShadow: "#898d73",
+        camera: { x: 640, y: 390, zoom: 1, zoomEnd: 1 },
+        instances: [
+          { id: "dot", assetId: "dot", x: 280, y: 700, scale: 0.86, motion: "still", view: "front" },
+          { id: "teo", assetId: "teo", x: 640, y: 708, scale: 0.82, motion: "still", view: "threeQuarter" },
+          { id: "gloam", assetId: "gloam", x: 980, y: 690, scale: 0.9, motion: "still", view: "front" },
+        ],
+        dialogue: [],
+      },
+    ],
+  });
 }
-
-export { LEADS };

@@ -1,9 +1,5 @@
-import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-
 // Rhubarb Lip Sync (MIT) mouth shapes, mapped onto Quantimation's nine drawings.
+// The Rhubarb process lives in rhubarb.mjs so the sandboxed renderer can import this file.
 // Emotional drawings (snarl, frown, grin) stay available for pose tracks.
 const LEGACY_MOUTH = {
   X: "closed",
@@ -54,8 +50,9 @@ export function mouthForShape(shape, available) {
 // and lead the audio by one frame.
 export function normalizeCues(cues, { fps = 24, lead = 1, text = "" } = {}) {
   if (!cues?.length) return [{ start: 0, end: 2 / fps, value: "X" }];
-  const end = cues.at(-1).end;
-  const count = Math.max(2, Math.ceil(end * fps));
+  const end = Number(cues.at(-1).end);
+  if (!Number.isFinite(end) || end < 0) return [{ start: 0, end: 2 / fps, value: "X" }];
+  const count = Math.min(Math.round(fps * 180), Math.max(2, Math.ceil(Math.min(end, 180) * fps)));
   const frames = [];
   for (let i = 0; i < count; i++) {
     const t = i / fps;
@@ -84,6 +81,18 @@ export function normalizeCues(cues, { fps = 24, lead = 1, text = "" } = {}) {
     const to = Math.max(0, index - lead);
     shifted[to] = value;
   });
+  if (text) {
+    const letters = [...text];
+    letters.forEach((ch, index) => {
+      if (!/[mbp]/i.test(ch)) return;
+      const at = Math.max(
+        0,
+        Math.round((index / letters.length) * (count - 1)) - lead,
+      );
+      shifted[at] = "A";
+      if (at + 1 < shifted.length) shifted[at + 1] = "A";
+    });
+  }
   const out = [];
   shifted.forEach((value, index) => {
     const start = index / fps;
@@ -135,9 +144,28 @@ export function estimateCues(text = "", duration = 1) {
   return cues;
 }
 
+export function closureAudit(text, cues, fps = 24) {
+  const letters = [...String(text)];
+  const end = cues.at(-1)?.end || 1;
+  const count = Math.max(2, Math.round(end * fps));
+  const misses = [];
+  letters.forEach((ch, index) => {
+    if (!/[mbp]/i.test(ch)) return;
+    const frame = Math.round((index / letters.length) * (count - 1));
+    const led = Math.max(0, frame - 1);
+    const t0 = led / fps;
+    const t1 = (led + 2) / fps;
+    const hit = cues.some(
+      (cue) => cue.value === "A" && cue.end > t0 - 1 / fps && cue.start < t1 + 1 / fps,
+    );
+    if (!hit) misses.push({ ch, index, t: Math.round(t0 * 1000) / 1000 });
+  });
+  return misses;
+}
+
 export function cuesToMouthTrack(cues, { target = "mouth", available, step = 1 / 24 } = {}) {
   if (!cues?.length) return { target, keyframes: [{ t: 0, variant: "closed", easing: "hold" }] };
-  const end = cues.at(-1).end;
+  const end = Math.min(180, Number(cues.at(-1).end) || 0);
   const keyframes = [];
   for (let t = 0; t <= end + 1e-6; t += step) {
     const cue =
@@ -166,46 +194,3 @@ export function shiftTrack(track, at, duration) {
   return { target: track.target, keyframes };
 }
 
-function run(bin, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stderr = "";
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) resolve(stderr);
-      else reject(new Error(stderr.trim() || `Rhubarb exited ${code}.`));
-    });
-  });
-}
-
-// Shells out to the official Rhubarb binary. `res/sphinx` must sit beside it;
-// this build recognises speech with the bundled PocketSphinx models.
-export async function rhubarbCues(wavPath, { bin, dialog, extended = false } = {}) {
-  const executable = bin || process.env.RHUBARB || "rhubarb";
-  const dir = await mkdtemp(path.join(os.tmpdir(), "quantimation-rhubarb-"));
-  const out = path.join(dir, "cues.json");
-  const dialogFile = path.join(dir, "dialog.txt");
-  try {
-    const args = ["-r", "pocketSphinx", "-f", "json", "-q", "-o", out];
-    if (dialog) {
-      await writeFile(dialogFile, dialog, "utf8");
-      args.push("-d", dialogFile);
-    }
-    if (extended) args.push("--extendedShapes", "GHX");
-    args.push(wavPath);
-    await run(executable, args);
-    const parsed = JSON.parse(await readFile(out, "utf8"));
-    if (!Array.isArray(parsed.mouthCues) || !parsed.mouthCues.length)
-      throw new Error("Rhubarb returned no mouth cues.");
-    return parsed.mouthCues.map((cue) => ({
-      start: cue.start,
-      end: cue.end,
-      value: cue.value,
-    }));
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
