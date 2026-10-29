@@ -133,7 +133,7 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.fontSize !== undefined)
     o.fontSize = num(s.fontSize, "font size", 4, 200);
   if (s.children !== undefined)
-    o.children = list(s.children, "children", 200).map((c) =>
+    o.children = list(s.children, "children", 360).map((c) =>
       validateShape(c, depth + 1, counter),
     );
   if (s.variants !== undefined) {

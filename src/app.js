@@ -10,7 +10,7 @@ import {
 } from "./model.js";
 import { renderFrame, renderAsset, renderOnionSkin } from "./renderer.js";
 import { applyIk, applyLipsync, applyPose, inbetweenDrawings, reportMotion, setGesture } from "./directing.js";
-import { authorDrawing } from "./drawings.js";
+import { authorDrawing, authorProp } from "./drawings.js";
 import { auditProduction, summarizeRender } from "./quality.js";
 import { soundBuffer } from "./sound.js";
 import { subtitlesSrt } from "./captions.js";
@@ -1654,6 +1654,8 @@ if (bridge?.onMcpRequest)
         result = mutation(() => {
           applyIk(episode, c);
         });
+      else if (c.action === "author_prop")
+        result = authorProp({ id: c.id, construction: c.construction, shapes: c.shapes });
       else if (c.action === "author_drawing")
         result = authorDrawing({
           character: c.character,

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawCharacter, inbetweenKeys, modelCheck, samplePose, scaleCheck, stagingCheck } from "../src/drawn.js";
 import { reviewEpisode } from "../src/review.js";
+import { authorProp, blobFlags, resetProps } from "../src/drawings/props.js";
 import { kitchenEpisode } from "../src/broadcast-demo.js";
 import { cameraRig, project } from "../src/layout.js";
 import { buildSet } from "../src/sets.js";
@@ -141,6 +142,28 @@ test("construction keeps inner lines, a real turn, and a low lens converges", ()
     const flat = JSON.stringify(set.shapes);
     assert.equal(flat.includes("ellipse"), false);
   }
+});
+
+test("constructed props keep a shade, a highlight, an interior line and a shadow", () => {
+  const flat = (id) => buildSet(id).shapes[0].children;
+  assert.deepEqual(blobFlags(flat("suburb_kitchen")), [], JSON.stringify(blobFlags(flat("suburb_kitchen"))));
+  assert.deepEqual(blobFlags(flat("coil_shed"), { required: ["toaster", "mug", "jar", "board", "towel"] }), []);
+  assert.deepEqual(blobFlags(flat("alien_market"), { required: ["bowl", "plates", "jar", "mug"] }), []);
+  for (const id of ["suburb_kitchen", "coil_shed", "alien_market"]) {
+    assert.ok(flat(id).length <= 360, `${id} has ${flat(id).length} shapes`);
+  }
+  assert.throws(() => authorProp({
+    id: "mug",
+    shapes: ["body", "shade", "hi", "shadow"].map((part) => ({
+      id: `mug_${part}`,
+      path: "M0 0C1 0 2 0 3 0C3 1 2 1 0 1Z",
+      fill: "#ffffff",
+      line: part === "hi" ? "interior" : "prop",
+    })),
+  }), /Blob prop/);
+  const stored = authorProp({ id: "kettle", construction: { x: 10, z: 24 } });
+  assert.ok(stored.contours >= 6);
+  resetProps();
 });
 
 test("every 12th page-four frame keeps the cast on model and on the floor", () => {

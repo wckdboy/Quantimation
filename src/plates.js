@@ -3,6 +3,7 @@
 // Contours are near-black ink. Fills stay the scene palette.
 
 import { smoothClosed, smoothOpen } from "./curves.js";
+import { garageProps, kitchenProps, marketProps } from "./drawings/props.js";
 
 const INK = "#221D26";
 
@@ -188,46 +189,10 @@ function kitchen(cam) {
       i % 2 ? "#E4D3B4" : "#F0E2C4",
       "bgDetail",
     )),
-    drawn(cam, "sink", [[-214, 93, 16], [-108, 93, 16], [-116, 93, 46], [-206, 93, 46]], "#D5D8DC", "bg"),
-    drawn(cam, "tapBase", [[-168, 94, 22], [-148, 94, 22], [-146, 100, 24], [-170, 100, 24]], "#C5C8CC", "prop"),
-    drawn(cam, "tapRiser", [[-162, 100, 24], [-154, 100, 24], [-152, 132, 26], [-164, 132, 26]], "#D5D8DC", "prop"),
-    drawn(cam, "tapSpout", [[-158, 128, 26], [-150, 136, 30], [-132, 128, 40], [-138, 118, 36], [-156, 122, 28]], "#C5C8CC", "prop"),
-    drawn(cam, "tapHandleL", [[-176, 102, 22], [-168, 106, 22], [-170, 98, 20]], "#B0B4B8", "prop"),
-    drawn(cam, "tapHandleR", [[-148, 106, 24], [-140, 102, 24], [-146, 96, 22]], "#B0B4B8", "prop"),
     ...box(cam, "stove", 20, 170, 0, 92, 0, 40, steel, "#B7B2AA"),
     worldFace(cam, "burner", [[50, 93, 22], [86, 93, 22], [82, 93, 42], [46, 93, 42]], "#6E6A66", "bgDetail"),
     worldFace(cam, "burner2", [[108, 93, 22], [144, 93, 22], [140, 93, 42], [104, 93, 42]], "#6E6A66", "bgDetail"),
-    drawn(cam, "kettle", [
-      [-54, 96, 30], [-50, 112, 28], [-40, 126, 30], [-22, 132, 33],
-      [-6, 126, 36], [2, 112, 38], [0, 98, 36], [-24, 94, 33], [-46, 96, 31],
-    ], "#C4553A", "prop"),
-    drawn(cam, "kettleSpout", [[-6, 116, 36], [8, 122, 40], [22, 116, 46], [10, 108, 40], [-2, 110, 36]], "#A84432", "prop"),
-    drawn(cam, "kettleHandle", [[-50, 108, 28], [-66, 116, 30], [-64, 100, 28], [-48, 104, 30]], "none", "bgDetail", true),
-    drawn(cam, "kettleLid", [[-40, 126, 31], [-22, 134, 33], [-8, 126, 36], [-24, 122, 34]], "#E7D3A1", "prop"),
-    drawn(cam, "kettleSeam", [[-42, 118, 30], [-20, 122, 33], [0, 114, 36]], "none", "bgDetail", true),
-    drawn(cam, "kettleKnob", [[-28, 132, 33], [-22, 138, 34], [-16, 132, 35]], "#C4553A", "prop"),
-    drawn(cam, "mug", [[-78, 94, 44], [-62, 118, 46], [-46, 116, 50], [-48, 94, 48]], "#EDE3CC", "prop"),
-    drawn(cam, "mugHandle", [[-48, 108, 50], [-36, 112, 54], [-38, 100, 52], [-50, 102, 48]], "none", "bgDetail", true),
-    drawn(cam, "plate1", [[120, 96, 36], [168, 98, 36], [164, 102, 48], [124, 100, 48]], "#F4F1EA", "prop"),
-    drawn(cam, "plate2", [[124, 100, 36], [164, 102, 36], [160, 106, 48], [128, 104, 48]], "#E7E2D8", "prop"),
-    drawn(cam, "plate3", [[128, 104, 36], [160, 106, 36], [156, 110, 46], [132, 108, 46]], "#F7F4EE", "prop"),
-    drawn(cam, "pot", [[-246, 92, 36], [-214, 92, 36], [-218, 108, 42], [-242, 108, 42]], "#C46A45", "prop"),
-    drawn(cam, "potRim", [[-250, 106, 34], [-210, 106, 34], [-214, 112, 40], [-246, 112, 40]], "#A85638", "prop"),
-    drawn(cam, "leafA", [[-244, 112, 38], [-258, 136, 40], [-236, 128, 42], [-230, 114, 40]], "#3E7A48", "prop"),
-    drawn(cam, "leafB", [[-228, 114, 40], [-214, 140, 44], [-206, 122, 46], [-222, 112, 42]], "#5E8A55", "prop"),
-    drawn(cam, "leafC", [[-236, 116, 40], [-232, 142, 42], [-220, 132, 44]], "#2F6A40", "prop"),
-    drawn(cam, "pear", [
-      [-58, 98, 48], [-64, 108, 46], [-60, 122, 48], [-48, 126, 50],
-      [-38, 118, 54], [-36, 106, 52], [-46, 98, 50],
-    ], "#6FA06A", "prop"),
-    drawn(cam, "pearStem", [[-50, 124, 49], [-46, 134, 50]], "none", "bgDetail", true),
-    drawn(cam, "apple", [
-      [-78, 100, 40], [-86, 110, 38], [-82, 122, 40], [-70, 124, 42], [-60, 114, 44], [-62, 102, 42],
-    ], "#C4553A", "prop"),
-    drawn(cam, "appleCheek", [[-76, 108, 41], [-72, 116, 42], [-66, 112, 43]], "#E7D3A1", "prop"),
-    drawn(cam, "appleStem", [[-72, 122, 41], [-68, 132, 42]], "none", "bgDetail", true),
-    drawn(cam, "board", [[-90, 94, 20], [-30, 94, 20], [-26, 98, 34], [-94, 98, 34]], "#E7D3A8", "prop"),
-    drawn(cam, "jar", [[140, 96, 28], [158, 100, 30], [154, 124, 34], [138, 118, 32]], "#E6EFEA", "prop"),
+    ...kitchenProps(cam),
     worldFace(cam, "picture", [[150, 250, 1], [210, 250, 1], [210, 200, 1], [150, 200, 1]], "#F3E7C8", "bgDetail"),
     worldFace(cam, "pictureHill", [[156, 224, 2], [180, 208, 2], [204, 226, 2], [204, 236, 2], [156, 236, 2]], "#7E946C", "bgFar"),
     worldFace(cam, "fridge", [[220, 190, 8], [320, 190, 8], [320, 0, 8], [220, 0, 8]], fridge),
@@ -235,9 +200,6 @@ function kitchen(cam) {
     worldFace(cam, "fridgeNote", [[240, 150, 9], [286, 150, 9], [286, 112, 9], [240, 112, 9]], "#F7F1DE", "bgDetail"),
     worldFace(cam, "calendar", [[-30, 248, 1], [28, 248, 1], [28, 200, 1], [-30, 200, 1]], "#F4EFE2", "bgDetail"),
     worldFace(cam, "calGrid", [[-22, 236, 2], [20, 236, 2]], "none", "bgDetail", true),
-    drawn(cam, "lampCord", [[2, 268, 24], [0, 230, 28], [-2, 206, 32]], "none", "bgDetail", true),
-    drawn(cam, "lampShade", [[-18, 206, 30], [22, 206, 30], [14, 184, 34], [-10, 184, 34]], "#E7D3A1", "prop"),
-    drawn(cam, "lampGlow", [[-8, 186, 32], [10, 186, 32], [6, 176, 34], [-4, 176, 34]], "#F6E7A2", "bgFar"),
     drawn(cam, "trash", [[150, 0, 110], [190, 0, 110], [184, 32, 106], [156, 32, 106]], "#8A847C", "prop"),
     drawn(cam, "trashRim", [[148, 30, 108], [192, 30, 108], [188, 36, 104], [152, 36, 104]], "#6E6A64", "prop"),
     ...legs(cam, "table", -210, -50, 0, 74, 48, 62, "#C48A52", woodSide),
@@ -276,6 +238,7 @@ function garage(cam) {
     worldFace(cam, "porthole", [[-160, 148, 63], [-120, 156, 63], [-100, 132, 63], [-128, 112, 63], [-164, 122, 63]], "#A6E8B0"),
     worldFace(cam, "cord", [[-30, 90, 36], [-8, 78, 48], [6, 88, 40]], "none", "bgDetail", true),
     ...box(cam, "fridge", -10, 70, 0, 170, 8, 62, "#9DAA95", "#74866C"),
+    ...garageProps(cam),
   ];
   return [layer("room", 1, shapes)];
 }
@@ -309,16 +272,9 @@ function market(cam) {
     shapes.push(worldFace(cam, `stall${index}Front`, [[x, 108, z + 40], [x + 78, 108, z + 40], [x + 78, 0, z + 40], [x, 0, z + 40]], cloth));
     shapes.push(worldFace(cam, `stall${index}Top`, [[x, 108, z], [x + 78, 108, z], [x + 78, 108, z + 40], [x, 108, z + 40]], cloth, "bg"));
   });
-  const jars = [
-    [-180, 190, 70, "#FFC46B"],
-    [-40, 200, 110, "#7FE6E0"],
-    [90, 188, 150, "#FFC46B"],
-    [210, 176, 190, "#7FE6E0"],
-  ];
-  for (const [x, y, z, fill] of jars) {
-    shapes.push(worldFace(cam, `jar${x}`, [[x, y, z], [x + 22, y + 8, z], [x + 18, y - 36, z], [x - 4, y - 30, z]], fill));
-    shapes.push(worldFace(cam, `string${x}`, [[x + 8, y + 8, z], [x + 8, y + 70, z - 20]], "none", "bgDetail", true));
-  }
+  shapes.push(...marketProps(cam));
+  shapes.push(worldFace(cam, "stringA", [[-160, 150, 70], [-160, 220, 40]], "none", "bgDetail", true));
+  shapes.push(worldFace(cam, "stringB", [[40, 160, 110], [40, 230, 80]], "none", "bgDetail", true));
   shapes.push(...box(cam, "crate", -300, -210, 0, 36, 280, 330, "#6A4A32", "#4A321F"));
   return [layer("room", 1, shapes)];
 }

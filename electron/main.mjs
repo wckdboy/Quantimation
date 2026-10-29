@@ -264,6 +264,7 @@ async function dispatch(command) {
       "motion_report",
       "set_gesture",
       "author_drawing",
+      "author_prop",
       "inbetween_drawings",
       "check_scale",
       "check_model",

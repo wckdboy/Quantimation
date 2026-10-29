@@ -408,6 +408,27 @@ function boundCues(cues) {
     "author_drawing",
   );
   tool(
+    "author_prop",
+    "Store a constructed prop. It must be a perspective cylinder or box, or custom cubics, with an interior line, a shade side, a highlight and a cast shadow. A single filled outline is rejected as a blob.",
+    {
+      id: z.string().min(1).max(40),
+      construction: z.object({
+        kind: z.enum(["cylinder", "box"]).optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        z: z.number().optional(),
+        fill: z.string().max(20).optional(),
+      }).optional(),
+      shapes: z.array(z.object({
+        id: z.string().min(1).max(40),
+        path: z.string().min(8).max(20000),
+        fill: z.string().max(20).optional(),
+        line: z.string().max(20).optional(),
+      })).min(4).max(24).optional(),
+    },
+    "author_prop",
+  );
+  tool(
     "set_gesture",
     "Author a drawn key pose for a character. The pose is construction (lean, weight, limb angles, hand drawing, prop grip), not a cut-out transform. Timing stays on twos unless the actor is set to ones.",
     {

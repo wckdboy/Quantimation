@@ -2,6 +2,7 @@
 // on model, on the floor, and clear of the furniture.
 
 import { drawCharacter, groundPlacement, samplePose, MODELS } from "./drawn.js";
+import { blobFlags } from "./drawings/props.js";
 import { activeShot } from "./model.js";
 import { KITCHEN_LAYOUT, LOW, EYE } from "./plates.js";
 import { drawShape, renderFrame } from "./renderer.js";
@@ -282,8 +283,18 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     if (flags.length) failures.push({ frame: index, t: Math.round(t * 100) / 100, flags });
   }
   const held = actingFlags(scene, fps);
-  if (held.length) failures.push({ frame: 0, t: 0, flags: held });
+  const blobs = blobFlags(flatShapes(episode.assets.find((asset) => asset.id === "dot_kitchen")?.shapes));
+  const heldFlags = [...held, ...blobs];
+  if (heldFlags.length) failures.push({ frame: 0, t: 0, flags: heldFlags });
   return { checked: indexes.length, failures };
+}
+
+function flatShapes(nodes, out = []) {
+  for (const node of nodes || []) {
+    if (node?.type === "group") flatShapes(node.children, out);
+    else if (node) out.push(node);
+  }
+  return out;
 }
 
 function seatFlags(pose, place, seat) {
