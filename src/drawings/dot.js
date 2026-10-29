@@ -235,10 +235,11 @@ function backStand() {
     sideHand("handL", c - 100, s + 140, "relaxed"),
     sideHand("handR", c + 70, s + 140, "relaxed"),
     ring("bob", [
-      [c - 70, t + 20], [c, t - 8], [c + 70, t + 20], [c + 78, t + 110], [c + 50, t + 136],
-      [c, t + 128], [c - 50, t + 136], [c - 78, t + 110],
+      [c - 78, t + 36], [c - 70, t + 8], [c - 28, t - 2], [c, t - 10], [c + 28, t - 2], [c + 70, t + 8],
+      [c + 84, t + 48], [c + 86, t + 118], [c + 62, t + 148], [c + 24, t + 138],
+      [c, t + 132], [c - 24, t + 138], [c - 62, t + 148], [c - 86, t + 118], [c - 84, t + 48],
     ], HAIR, "contour", { role: "head" }),
-    ring("neck", [[c - 16, t + 140], [c + 16, t + 140], [c + 18, s + 4], [c - 18, s + 4]], SKIN),
+    ring("nape", [[c - 18, t + 124], [c, t + 134], [c + 18, t + 124], [c + 14, s + 8], [c - 14, s + 8]], SKIN),
   ], [[c - 24, Y.sole], [c + 28, Y.sole]], TOP, Y.chin);
 }
 

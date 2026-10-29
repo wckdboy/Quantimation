@@ -16,7 +16,7 @@ import { coilShedEpisode } from "../src/broadcast-demo.js";
 import { instantiateStandard, STANDARDS } from "../src/standards.js";
 import { applyLipsync } from "../src/directing.js";
 import { encodeWav, mixWavTimeline, readWav } from "../src/offline.js";
-import { validateEpisode } from "../src/model.js";
+import { validateAsset, validateEpisode } from "../src/model.js";
 
 test("open strokes taper and closed strokes keep a body", () => {
   assert.ok(pressureWidth(0.5, 10, { closed: false }) > pressureWidth(0, 10, { closed: false }) * 4);
@@ -121,6 +121,15 @@ test("coil shed episode, parallax sets and lip-sync tracks validate", () => {
   assert.ok(STANDARDS.some((item) => item.id === "dot"));
   assert.ok(!STANDARDS.some((item) => item.id === "portal"));
   assert.ok(!STANDARDS.some((item) => String(item.name).includes("Oona")));
+  assert.throws(() => validateAsset({
+    id: "pip",
+    name: "Pip",
+    kind: "character",
+    description: "Retired.",
+    width: 100,
+    height: 100,
+    shapes: [{ type: "path", path: "M0 0 C1 1 2 2 3 0Z", fill: "#000000" }],
+  }), /Retired/);
   const episode = coilShedEpisode();
   assert.equal(episode.title, "Page Four");
   assert.ok(episode.scenes[0].duration >= 15 && episode.scenes[0].duration <= 30);

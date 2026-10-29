@@ -1,4 +1,4 @@
-import { interpolate, locate, activeShot } from "./model.js";
+import { activeShot, interpolate, locate, rejectRetiredCast } from "./model.js";
 import { poseAt, motionOffset, speechMouth } from "./pose.js";
 import { blinkClosed, squashStretch } from "./rig.js";
 import { boundsOf, sampleShape, shadeHex } from "./ink.js";
@@ -420,6 +420,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
   const ctx = canvas.getContext("2d");
   const hit = locate(episode, time);
   if (!hit) return;
+  for (const asset of episode.assets || []) rejectRetiredCast(asset);
   const { scene: s, time: t } = hit;
   const timing = frameOptions(episode, options, t);
   ctx.save();
@@ -564,6 +565,9 @@ export function renderFrame(canvas, episode, time, options = {}) {
     let drawX = state.x;
     let drawY = state.y;
     let drawScale = state.scale;
+    let bodyLean = 0;
+    let bodyWeight = 0;
+    let headTilt = 0;
     if (p.drawingKeys?.length && timing.ink !== "legacy") {
       const pitch = lensCam ? lensCam.pitch : c.perspective === "low" ? 16 : c.perspective === "high" ? -14 : 0;
       const pose = samplePose(
@@ -580,6 +584,9 @@ export function renderFrame(canvas, episode, time, options = {}) {
         if (mouthPose.variant && mouthPose.variant !== "auto") pose.viseme = mouthPose.variant;
       }
       drawnArt = drawCharacter(p.assetId, pose);
+      bodyLean = pose.lean || 0;
+      bodyWeight = pose.weight || 0;
+      headTilt = pose.headTilt || 0;
       const place = lensCam
         ? actorPlacement(lensCam, pose, MODELS[p.assetId] || MODELS.dot, drawnArt.metrics)
         : groundPlacement(s, pose, pitch, rigFor(c.perspective));
@@ -590,8 +597,8 @@ export function renderFrame(canvas, episode, time, options = {}) {
         ? place.scale * (modelHeight / drawnArt.metrics.span)
         : place.scale;
     }
-    ctx.translate(drawX, drawY + bob);
-    ctx.rotate(rad(state.rotation + (p.motion === "spin" ? poseTime * 50 : 0)));
+    ctx.translate(drawX + bodyWeight * 26, drawY + bob);
+    ctx.rotate(rad(state.rotation + bodyLean * 0.45 + headTilt * 0.25 + (p.motion === "spin" ? poseTime * 50 : 0)));
     ctx.scale(drawScale * (p.flip ? -1 : 1) * squash.x, drawScale * squash.y);
     if (asset.kind === "character" || asset.kind === "creature") {
       ctx.save();

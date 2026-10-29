@@ -151,8 +151,19 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.type === "polygon" && !o.points) fail("A polygon needs points.");
   return o;
 }
+const RETIRED_CAST = new Set(["oona", "quark", "pip"]);
+
+export function rejectRetiredCast(asset) {
+  const id = String(asset?.id || "").toLowerCase();
+  const name = String(asset?.name || "").toLowerCase();
+  if (RETIRED_CAST.has(id) || name.includes("quark") || name.includes("oona") || /\bpip\b/.test(name)) {
+    fail("Retired Quark-style cast cannot be rendered.");
+  }
+}
+
 export function validateAsset(a) {
   if (!a || !KINDS.includes(a.kind)) fail("Asset kind is invalid.");
+  rejectRetiredCast(a);
   const counter = { n: 0 };
   const voice = a.voice
     ? {

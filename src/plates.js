@@ -4,8 +4,8 @@
 
 const INK = "#221D26";
 
-export const EYE = { vpx: 640, vpy: 248, eyeY: 155, camZ: 500, focal: 430 };
-export const LOW = { vpx: 640, vpy: 468, eyeY: 58, camZ: 460, focal: 390 };
+export const EYE = { vpx: 640, vpy: 390, eyeY: 150, camZ: 340, focal: 420 };
+export const LOW = { vpx: 640, vpy: 520, eyeY: 70, camZ: 200, focal: 280 };
 
 export function rigFor(perspective = "eye") {
   const cam = perspective === "low" ? LOW : EYE;
@@ -137,11 +137,18 @@ function kitchen(cam) {
     worldFace(cam, "burner2", [[108, 93, 22], [144, 93, 22], [140, 93, 42], [104, 93, 42]], "#6E6A66", "bgDetail"),
     worldFace(cam, "kettle", [[-40, 92, 30], [-16, 118, 34], [8, 96, 40], [-4, 92, 36], [-28, 92, 28]], "#C4553A"),
     worldFace(cam, "fruit", [[-60, 96, 48], [-42, 108, 50], [-28, 96, 54], [-46, 92, 50]], "#3E8F8A"),
-    ...box(cam, "fridge", 214, 310, 0, 196, 0, 58, fridge, "#C8C2B4"),
-    worldFace(cam, "fridgeNote", [[236, 150, 59], [276, 150, 59], [276, 118, 59], [236, 118, 59]], "#F7F1DE", "bgDetail"),
+    worldFace(cam, "fridge", [[220, 190, 8], [320, 190, 8], [320, 0, 8], [220, 0, 8]], fridge),
+    worldFace(cam, "fridgeTop", [[220, 190, 0], [320, 190, 0], [320, 190, 8], [220, 190, 8]], "#D5D0C4"),
+    worldFace(cam, "fridgeNote", [[240, 150, 9], [286, 150, 9], [286, 112, 9], [240, 112, 9]], "#F7F1DE", "bgDetail"),
+    worldFace(cam, "calendar", [[-20, 250, 1], [50, 250, 1], [50, 200, 1], [-20, 200, 1]], "#F4EFE2", "bgDetail"),
+    worldFace(cam, "lampCord", [[0, 268, 30], [0, 214, 36]], "none", "bgDetail", true),
+    worldFace(cam, "lamp", [[-16, 214, 30], [16, 214, 30], [8, 188, 34], [-8, 188, 34]], "#E7D3A1", "prop"),
+    worldFace(cam, "plant", [[-250, 96, 40], [-230, 130, 46], [-210, 96, 50]], "#5E8A55"),
+    worldFace(cam, "dishes", [[150, 96, 30], [190, 100, 34], [184, 112, 40], [146, 108, 36]], "#E7EEF2", "bgDetail"),
+    worldFace(cam, "trash", [[250, 36, 150], [290, 36, 150], [284, 0, 150], [256, 0, 150]], "#8A847C", "prop"),
     ...legs(cam, "table", 210, 330, 74, 76, 24, 96, "#C48A52", woodSide),
-    ...legs(cam, "chair", -46, 34, 44, 44, 200, 248, wood, woodSide),
-    worldFace(cam, "chairBack", [[-42, 44, 206], [30, 44, 206], [30, 128, 206], [-42, 128, 206]], "#A56B42", "prop"),
+    ...legs(cam, "chair", -34, 26, 42, 42, 110, 150, wood, woodSide),
+    worldFace(cam, "chairBack", [[-30, 42, 114], [22, 42, 114], [22, 78, 114], [-30, 78, 114]], "#A56B42", "prop"),
   ];
   return [layer("room", 1, shapes)];
 }

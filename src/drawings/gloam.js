@@ -41,22 +41,29 @@ function front() {
     [CX + 96, t + 250],
     [CX + 46, t + 186],
   ];
-  const vest = [
-    [CX - 34, t + 210],
-    [CX + 34, t + 208],
-    [CX + 70, t + 280],
-    [CX + 54, t + 340],
-    [CX, t + 356],
-    [CX - 54, t + 340],
-    [CX - 70, t + 280],
-  ];
   const eyeY = t + 108;
   const r = 28;
   return sheet("gloam", "front", "stand", [
     ring("body", body, SKIN, "contour", { shadow: true }),
-    ring("vest", vest, VEST, "contour", { shadow: true }),
-    ring("hem", [[CX - 48, t + 332], [CX, t + 348], [CX + 48, t + 332]], "none", "interior", { open: true }),
-    ring("button", [[CX - 6, t + 250], [CX + 6, t + 250], [CX + 6, t + 262], [CX - 6, t + 262]], SKIN_DK, "prop"),
+    ring("vest", [
+      [CX - 28, t + 198],
+      [CX - 8, t + 214],
+      [CX, t + 206],
+      [CX + 8, t + 214],
+      [CX + 28, t + 198],
+      [CX + 62, t + 250],
+      [CX + 70, t + 310],
+      [CX + 48, t + 352],
+      [CX, t + 366],
+      [CX - 48, t + 352],
+      [CX - 70, t + 310],
+      [CX - 62, t + 250],
+    ], VEST, "contour", { shadow: true }),
+    ring("collar", [[CX - 22, t + 206], [CX, t + 228], [CX + 22, t + 206]], "none", "interior", { open: true }),
+    ring("hem", [[CX - 46, t + 340], [CX, t + 358], [CX + 46, t + 340]], "none", "interior", { open: true }),
+    ring("pocket", [[CX - 22, t + 286], [CX + 18, t + 286], [CX + 16, t + 322], [CX - 20, t + 322]], "none", "interior", { open: true }),
+    ring("button", [[CX - 5, t + 246], [CX + 5, t + 246], [CX + 5, t + 258], [CX - 5, t + 258]], SKIN_DK, "prop"),
+    ring("button2", [[CX - 5, t + 292], [CX + 5, t + 292], [CX + 5, t + 304], [CX - 5, t + 304]], SKIN_DK, "prop"),
     ring("armL", [
       [CX - 70, t + 230], [CX - 108, t + 250], [CX - 118, t + 300], [CX - 96, t + 312], [CX - 78, t + 260], [CX - 52, t + 236],
     ], SKIN),

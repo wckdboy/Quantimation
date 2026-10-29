@@ -833,6 +833,43 @@ function features(built) {
 
 const cache = new Map();
 
+function nudgePath(path, dx) {
+  let index = 0;
+  return String(path).replace(/-?\d*\.?\d+/g, (token) => {
+    const value = Number(token);
+    const next = index % 2 === 0 ? value + dx : value;
+    index += 1;
+    return Number.isFinite(next) ? next.toFixed(1) : token;
+  });
+}
+
+function flexMouth(path, amount) {
+  const nums = String(path).match(/-?\d*\.?\d+/g)?.map(Number) || [];
+  const ys = nums.filter((_, index) => index % 2 === 1);
+  if (ys.length < 2) return path;
+  const mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+  let index = 0;
+  return String(path).replace(/-?\d*\.?\d+/g, (token) => {
+    const value = Number(token);
+    const next = index % 2 === 1 ? mid + (value - mid) * amount : value;
+    index += 1;
+    return Number.isFinite(next) ? next.toFixed(1) : token;
+  });
+}
+
+function actOnDrawing(shapes, pose) {
+  const look = (pose.headTilt || 0) * 0.45;
+  const talking = pose.viseme && pose.viseme !== "X";
+  return shapes.flatMap((shape) => {
+    if (pose.blink > 0.82 && (shape.role === "eye" || shape.role === "pupil")) return [];
+    if (pose.blink > 0.45 && shape.role === "pupil") return [];
+    let path = shape.path;
+    if (shape.role === "pupil" && look) path = nudgePath(path, look);
+    if (talking && (shape.id === "mouth" || shape.id === "tongue")) path = flexMouth(path, 1.35);
+    return [{ ...shape, path, type: "path", strokeWidth: 0, opacity: 1, seed: (shape.seed || 1) + (pose.boil || 0) }];
+  });
+}
+
 export function drawCharacter(characterId = "dot", pose = {}) {
   const id = MODELS[characterId] ? characterId : "dot";
   const normal = normalizePose(id, { ...pose, character: id });
@@ -853,7 +890,7 @@ export function drawCharacter(characterId = "dot", pose = {}) {
     return {
       width: authored.width || 560,
       height: footY + 4,
-      shapes: authored.shapes.map((shape) => ({ ...shape, type: "path", strokeWidth: 0, opacity: 1, seed: (shape.seed || 1) + normal.boil })),
+      shapes: actOnDrawing(authored.shapes, normal),
       metrics: {
         heads: MODELS[id].heads,
         measuredHeads: (footY - crown) / Math.max(24, chin - crown),
@@ -888,7 +925,7 @@ export function groundPlacement(scene = {}, pose = {}, pitch = 0, rig = null) {
   const y = horizon + span * (1 - depth);
   const perspective = Math.max(0.18, (y - horizon) / span);
   const x = vanishX + ((pose.groundX ?? 0) - vanishX) * perspective;
-  return { x, y, scale: 0.42 + 0.78 * perspective, depth, horizon, floorFront };
+  return { x, y, scale: 0.58 + 0.78 * perspective, depth, horizon, floorFront };
 }
 
 export function scaleCheck(scene, { fps = 24 } = {}) {
@@ -946,6 +983,15 @@ export function stagingCheck(scene, { fps = 24 } = {}) {
   for (const time of times) {
     const shot = activeShot(scene, time);
     const rig = rigFor(shot.camera?.perspective);
+    const zoom = shot.camera?.zoom || 1;
+    const camX = shot.camera?.x ?? 640;
+    const camY = shot.camera?.y ?? 360;
+    const view = {
+      left: camX - 640 / zoom,
+      right: camX + 640 / zoom,
+      top: camY - 360 / zoom,
+      bottom: camY + 360 / zoom,
+    };
     const boxes = actors.map((actor) => {
       const pose = samplePose(actor.drawingKeys, time, { twos: actor.timing !== "ones", fps });
       const art = drawCharacter(actor.assetId, pose);
@@ -972,11 +1018,17 @@ export function stagingCheck(scene, { fps = 24 } = {}) {
         bottom: place.y,
       };
     });
+    const close = /close/i.test(shot.label || "");
     for (const box of boxes) {
-      if (box.left < 16) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "left", at: Math.round(box.left) });
-      if (box.right > 1264) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "right", at: Math.round(box.right) });
-      if (box.top < 4) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "top", at: Math.round(box.top) });
-      if (box.bottom > 712 || box.bottom < rig.horizonY + 8) {
+      const fullyOut = box.right < view.left - 2 || box.left > view.right + 2 || box.bottom < view.top || box.top > view.bottom;
+      const fullyIn = box.left >= view.left + 4 && box.right <= view.right - 4 && box.top >= view.top + 2 && box.bottom <= view.bottom + 30;
+      const headIn = box.top >= view.top + 2 && box.top <= view.bottom - 40 && box.left >= view.left + 4 && box.right <= view.right - 4;
+      if (close) {
+        if (!fullyOut && !headIn) flags.push({ code: "edge", instanceId: box.id, t: time, at: Math.round(box.left) });
+      } else if (!fullyOut && !fullyIn) {
+        flags.push({ code: "edge", instanceId: box.id, t: time, at: Math.round(box.left) });
+      }
+      if (!fullyOut && box.bottom < rig.horizonY + 12) {
         flags.push({ code: "floor", instanceId: box.id, t: time, foot: Math.round(box.bottom) });
       }
     }
