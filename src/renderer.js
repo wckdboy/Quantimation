@@ -71,7 +71,8 @@ function baseSubs(shape) {
 function screenWidth(px, acting) {
   const k = Math.max(0.05, acting.k || 1);
   const canvasScale = acting.canvasScale || 1.5;
-  const clamped = Math.max(0.8, Math.min(1.25, k));
+  const cap = !acting.environment && (acting.lineName === "contour" || acting.lineName === "eye") ? 1.45 : 1.25;
+  const clamped = Math.max(0.8, Math.min(cap, k));
   const screenPx = Math.max(1.25, px * clamped);
   return screenPx / (k * canvasScale);
 }
@@ -136,7 +137,7 @@ function paintBroadcast(ctx, shape, acting) {
       ? shape.stroke
       : null;
   if (!line?.px || !stroke || stroke === "transparent") return;
-  const width = screenWidth(line.px, acting);
+  const width = screenWidth(line.px, { ...acting, lineName });
   const amp = (line.wobblePx || 0) / Math.max(0.05, (acting.k || 1) * (acting.canvasScale || 1.5));
   ctx.fillStyle = stroke;
   for (const sub of subs) {
@@ -268,7 +269,7 @@ export function drawShape(
   if (s.role === "mouth" && acting.view === "profile" && !drawnTurn) ctx.translate(26, 8);
   if (s.role === "mouth" && acting.view === "threeQuarter" && !drawnTurn)
     ctx.translate(12, 2);
-  if (s.role === "eye" && acting.blink !== false && !acting.suppressBlink) {
+  if (s.role === "eye" && !drawnTurn && acting.blink !== false && !acting.suppressBlink) {
     const closed = blinkClosed(acting.liveTime ?? t, acting.blinkSeed || 1);
     if (closed > 0) {
       ctx.translate(px, py);

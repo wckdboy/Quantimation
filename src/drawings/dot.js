@@ -157,11 +157,11 @@ function quarterStand() {
     ring("lapel", [[c + 10, s], [c + 22, Y.waist - 24], [c + 6, Y.waist - 16]], "none", "interior", { open: true }),
     ring("neck", [[c - 4, Y.chin - 2], [c + 28, Y.chin + 4], [c + 24, s + 8], [c - 8, s + 4]], SKIN),
     sideHand("handB", c - 78, s + 150, "relaxed"),
-    ...tablet("pad", c + 40, s + 70, 64, 92),
-    sideHand("handF", c + 48, s + 96, "grip"),
+    ...tablet("pad", c + 28, s + 108, 46, 64),
+    sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [
-      [c - 28, t + 16], [c + 8, t - 8], [c + 52, t + 2], [c + 78, t + 40], [c + 86, t + 108],
-      [c + 64, t + 142], [c + 34, t + 48], [c + 4, t + 40], [c - 36, t + 56], [c - 54, t + 118], [c - 48, t + 48],
+      [c - 42, t + 40], [c - 12, t + 8], [c + 24, t], [c + 56, t + 16], [c + 62, t + 42],
+      [c + 18, t + 34], [c - 8, t + 30], [c - 34, t + 64], [c - 50, t + 118], [c - 28, t + 52],
     ], HAIR, "contour", { role: "hair" }),
     ring("head", [
       [c - 16, t + 6], [c + 28, t + 2], [c + 62, t + 36], [c + 70, t + 90],
@@ -169,7 +169,7 @@ function quarterStand() {
       [c - 28, Y.chin - 6], [c - 48, t + 100], [c - 46, t + 40],
     ], SKIN, "contour", { role: "head" }),
     ring("fringe", [[c - 20, t + 18], [c + 30, t + 10], [c + 64, t + 28], [c + 50, t + 50], [c + 10, t + 48], [c - 16, t + 42]], HAIR),
-    ...goggle("near", c + 34, Y.eye, 20, 2, SKIN, 0.3),
+    ...goggle("near", c + 40, Y.eye + 22, 13, 1, SKIN, 0.2),
     ring("nose", [[c + 62, Y.nose - 8], [c + 74, Y.nose], [c + 56, Y.nose + 10]], "none", "interior", { open: true }),
     ring("mouth", [[c + 24, Y.mouth], [c + 46, Y.mouth + 2], [c + 58, Y.mouth - 2]], "none", "mouth", { open: true, line: "mouth" }),
   ];

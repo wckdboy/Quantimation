@@ -74,6 +74,7 @@ export function goggle(prefix, cx, cy, r, pupilShift, skin, lid = 0.15) {
       { open: true },
     ),
     disc(`${prefix}Pupil`, cx + pupilShift, cy + r * 0.18, Math.max(3, r * 0.22), INK, "eye", { role: "pupil" }),
+    disc(`${prefix}Glint`, cx - r * 0.28 + pupilShift * 0.2, cy - r * 0.32, Math.max(2, r * 0.12), "#FFFEF8", "none"),
   ];
 }
 
