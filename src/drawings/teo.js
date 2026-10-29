@@ -453,6 +453,14 @@ function profileBody(dy, legF, legB, arm) {
     [spec.hipX + 22, hip + 10],
   ], OVERALL, "contour", { shadow: true });
   return [
+    ring("hip", [
+      [248, Y.shoulder + dy + 30],
+      [318, Y.shoulder + dy + 18],
+      [332, Y.waist + dy - 4],
+      [316, hip + 6],
+      [268, hip + 8],
+      [242, Y.waist + dy + 6],
+    ], OVERALL, "contour", { shadow: true }),
     legShape("legB", legB),
     ring("bootB", [
       [Math.min(legB.heelX, legB.toeX) - 4, Math.max(legB.heelY, legB.toeY) - 28],
@@ -477,19 +485,12 @@ function profileBody(dy, legF, legB, arm) {
     ], BOOT),
     ring("shirt", chest, SHIRT, "contour", { shadow: true }),
     ring("bib", [
-      [306, Y.shoulder + dy + 20],
-      [324, Y.shoulder + dy + 16],
-      [326, Y.waist + dy - 18],
-      [308, Y.waist + dy - 14],
+      [300, Y.shoulder + dy + 22],
+      [322, Y.shoulder + dy + 18],
+      [324, Y.waist + dy - 22],
+      [302, Y.waist + dy - 18],
     ], OVERALL),
-    ring("hip", [
-      [252, Y.waist + dy + 2],
-      [332, Y.waist + dy - 2],
-      [328, hip + 6],
-      [292, hip + 12],
-      [250, hip + 4],
-    ], OVERALL, "contour", { shadow: true }),
-    ring("strap", [[296, Y.shoulder + dy + 18], [304, Y.shoulder + dy - 2], [318, Y.shoulder + dy + 4], [312, Y.waist + dy - 20]], OVERALL),
+    ring("strap", [[298, Y.shoulder + dy + 16], [308, Y.shoulder + dy - 4], [320, Y.shoulder + dy + 2], [314, Y.waist + dy - 24]], OVERALL),
     ring("sleeve", [
       [300, Y.shoulder + dy + 4],
       [318, Y.shoulder + dy - 2],
@@ -552,21 +553,21 @@ function seated(name, talking) {
   const poseR = talking ? "open" : "relaxed";
   const body = [
     ring("shinL", [
-      [268, 760], [294, 772], [300, 848], [268, 852], [250, 778],
+      [312, 756], [336, 768], [340, 848], [308, 852], [292, 772],
     ], OVERALL, "contour", { shadow: true }),
-    ring("bootL", [[258, 834], [246, 862], [264, 888], [332, 884], [328, 844], [294, 828]], BOOT),
+    ring("bootL", [[300, 834], [288, 862], [306, 888], [372, 884], [368, 844], [334, 828]], BOOT),
     ring("shinR", [
-      [455, 752], [482, 764], [490, 846], [458, 852], [438, 772],
+      [430, 754], [454, 766], [458, 846], [426, 852], [410, 770],
     ], OVERALL),
-    ring("bootR", [[448, 832], [438, 860], [458, 888], [524, 882], [520, 842], [480, 826]], BOOT),
+    ring("bootR", [[418, 832], [408, 860], [428, 888], [492, 882], [488, 842], [450, 826]], BOOT),
     ring("thighL", [
-      [348, 718], [300, 730], [262, 756], [268, 786], [302, 794], [340, 758], [364, 734],
+      [356, 716], [332, 726], [308, 748], [304, 776], [334, 784], [360, 756], [372, 730],
     ], OVERALL, "contour", { shadow: true }),
     ring("thighR", [
-      [392, 714], [450, 724], [488, 752], [482, 784], [446, 792], [404, 756], [378, 730],
+      [388, 714], [420, 724], [448, 748], [444, 778], [414, 786], [388, 756], [376, 728],
     ], OVERALL, "contour", { shadow: true }),
-    ring("kneeL", [[274, 748], [292, 764], [280, 776]], "none", "interior", { open: true }),
-    ring("kneeR", [[462, 740], [480, 756], [466, 770]], "none", "interior", { open: true }),
+    ring("kneeL", [[312, 746], [328, 762], [316, 774]], "none", "interior", { open: true }),
+    ring("kneeR", [[436, 744], [452, 760], [440, 772]], "none", "interior", { open: true }),
     ring("shirt", [
       [330, 560], [368, 548], [406, 558], [412, 640], [396, 736], [344, 740], [324, 640],
     ], SHIRT, "contour", { shadow: true }),
@@ -580,8 +581,8 @@ function seated(name, talking) {
     ring("sleeveR", talking
       ? [[404, 564], [456, 512], [512, 488], [528, 516], [496, 536], [444, 552], [400, 576]]
       : [[382, 574], [398, 630], [416, 692], [398, 708], [382, 676], [370, 620], [366, 580]], SHIRT),
-    hand("handL", [318, 684], "relaxed"),
-    hand("handR", talking ? [516, 496] : [410, 684], poseR),
+    hand("handL", [318, 700], "relaxed"),
+    hand("handR", talking ? [516, 496] : [430, 700], poseR),
     ring("neck", [[356, 520], [384, 516], [390, 560], [352, 564]], SKIN),
     disc("curl0", 330, 400, 13, HAIR),
     disc("curl1", 358, 384, 16, HAIR),
