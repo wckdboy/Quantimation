@@ -581,7 +581,10 @@ export function renderFrame(canvas, episode, time, options = {}) {
         : groundPlacement(s, pose, pitch);
       drawX = place.x;
       drawY = place.y;
-      drawScale = place.scale;
+      const modelHeight = MODELS[p.assetId]?.world;
+      drawScale = !lensCam && drawnArt?.metrics?.span && modelHeight
+        ? place.scale * (modelHeight / drawnArt.metrics.span)
+        : place.scale;
     }
     ctx.translate(drawX, drawY + bob);
     ctx.rotate(rad(state.rotation + (p.motion === "spin" ? poseTime * 50 : 0)));

@@ -43,7 +43,9 @@ test("page four stores redrawn keys for a walk, a seat, and a gripped prop", () 
   assert.equal(dot.drawingKeys[0].handL, "grip");
   assert.equal(scene.shots.length, 4);
   assert.ok(scene.shots.some((shot) => shot.camera.perspective === "low"));
-  assert.equal(scene.lens, true);
+  const kitchen = episode.assets.find((asset) => asset.id === "dot_kitchen");
+  assert.ok(kitchen.shapes.some((shape) => shape.parallax > 0));
+  assert.equal(JSON.stringify(kitchen.shapes).includes("ellipse"), false);
   assert.ok(teo.drawingKeys.some((key) => key.lHip > -8 && key.t > teo.drawingKeys.find((seat) => seat.lHip < -40).t));
 });
 

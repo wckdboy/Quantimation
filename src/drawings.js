@@ -2,6 +2,8 @@
 // or replace a key with smooth cubic contours.
 
 import { morphDrawings } from "./curves.js";
+import { DOT_SHEET } from "./drawings/dot.js";
+import { GLOAM_SHEET } from "./drawings/gloam.js";
 import { TEO_SHEET } from "./drawings/teo.js";
 
 const sheets = new Map();
@@ -23,6 +25,8 @@ function store(map, character, view, pose, drawing) {
 }
 
 for (const drawing of TEO_SHEET) store(sheets, "teo", drawing.view, drawing.pose, drawing);
+for (const drawing of DOT_SHEET) store(sheets, "dot", drawing.view, drawing.pose, drawing);
+for (const drawing of GLOAM_SHEET) store(sheets, "gloam", drawing.view, drawing.pose, drawing);
 
 export function authorDrawing({ character, view, pose = "stand", shapes, feet, crown, chin, width, height }) {
   const drawing = {

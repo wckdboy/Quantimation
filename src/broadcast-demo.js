@@ -1,7 +1,6 @@
 import { buildLead } from "./cast.js";
 import { applyLipsync } from "./directing.js";
 import { inbetweenKeys } from "./drawn.js";
-import { CHAIR } from "./layout.js";
 import { buildSet } from "./sets.js";
 import { validateEpisode } from "./model.js";
 
@@ -53,7 +52,6 @@ export function kitchenEpisode({
         horizon: 0.72,
         floorY: 710,
         vanishX: 620,
-        lens: true,
         layout: "kitchen",
         contactShadow: "#898d73",
         camera: { x: 640, y: 360, zoom: 1, zoomEnd: 1 },
@@ -111,24 +109,16 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("teo", [
-              { t: 0, view: "threeQuarter", facing: 1, depth: 0.82, groundX: 640, wx: CHAIR.x + 8, wz: 320, lHip: 32, rHip: -26, lKnee: 16, rKnee: 22, lShoulder: -22, rShoulder: 18, squash: 0.95, arc: 10, plantL: 0, plantR: 0 },
-              { t: 0.55, view: "threeQuarter", facing: 1, depth: 0.7, wx: CHAIR.x + 6, wz: 286, lHip: -24, rHip: 30, lKnee: 20, rKnee: 14, lShoulder: 16, rShoulder: -18, squash: 1.05, arc: 10, plantL: 0, plantR: 0 },
-              { t: 1.15, view: "threeQuarter", facing: 1, depth: 0.55, wx: CHAIR.x + 4, wz: 250, lHip: 28, rHip: -20, lKnee: 12, rKnee: 18, lShoulder: -16, rShoulder: 14, squash: 0.96, plantL: 0, plantR: 0 },
-              { t: 1.8, view: "threeQuarter", facing: 1, depth: 0.4, wx: CHAIR.x, wz: 220, lHip: -8, rHip: 18, lKnee: 10, rKnee: 8, squash: 1.02, plantL: 0, plantR: 0 },
-              { t: 2.45, view: "threeQuarter", facing: 1, depth: 0.32, wx: CHAIR.x - 4, wz: 196, lHip: 2, rHip: -2, squash: 1, plantL: 1, plantR: 1, lean: 0, weight: 0.1 },
-              { t: 3.05, view: "threeQuarter", facing: -1, depth: 0.3, wx: CHAIR.x + 6, wz: 192, lHip: 4, rHip: -2, lean: 5, weight: 0.15, plantL: 1, plantR: 1 },
-              { t: 3.45, view: "threeQuarter", facing: -1, depth: 0.3, wx: CHAIR.x + 4, wz: 194, lHip: -6, rHip: -4, lean: -7, weight: -0.45, squash: 1.06, lShoulder: -28, rShoulder: 22, plantL: 1, plantR: 1 },
-              { t: 4.15, view: "threeQuarter", facing: -1, depth: 0.28, wx: CHAIR.x, wz: CHAIR.z - 4, lHip: -46, rHip: -42, lKnee: 36, rKnee: 32, lean: 8, weight: -0.35, squash: 0.9, plantL: 1, plantR: 1 },
-              { t: 4.7, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 8, lHip: -74, rHip: -70, lKnee: 70, rKnee: 66, lean: 3, weight: -0.1, squash: 0.86, plantL: 1, plantR: 1 },
-              { t: 5.2, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 10, lHip: -64, rHip: -60, lean: -2, squash: 1.02, plantL: 1, plantR: 1 },
-              { t: 5.7, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 10, lHip: -70, rHip: -66, lean: 0, weight: 0, squash: 0.97, plantL: 1, plantR: 1 },
-              { t: teoAt, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 10, lHip: -70, rHip: -66, squash: 0.97, handR: "point", rShoulder: -36, rElbow: -24, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur - 0.4, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 10, lHip: -70, rHip: -66, squash: 0.98, handR: "relaxed", lean: 2, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 0.05, view: "threeQuarter", facing: -1, depth: 0.26, wx: CHAIR.x, wz: CHAIR.z - 12, lHip: -62, rHip: -58, lean: -8, weight: 0.7, squash: 1.06, lShoulder: 20, rShoulder: -16, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 0.55, view: "threeQuarter", facing: -1, depth: 0.3, wx: CHAIR.x - 2, wz: CHAIR.z - 16, lHip: -16, rHip: -12, lean: -4, weight: 0.35, squash: 1.08, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 0.95, view: "threeQuarter", facing: -1, depth: 0.32, wx: CHAIR.x - 6, wz: CHAIR.z - 28, lHip: 6, rHip: -4, lean: 3, weight: 0.1, squash: 0.93, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 1.35, view: "threeQuarter", facing: -1, depth: 0.32, wx: CHAIR.x - 8, wz: CHAIR.z - 30, lHip: 2, rHip: -2, lean: 0, weight: 0.05, squash: 1, plantL: 1, plantR: 1 },
-              { t: duration - 0.2, view: "threeQuarter", facing: -1, depth: 0.32, wx: CHAIR.x - 8, wz: CHAIR.z - 30, lHip: 2, rHip: -2, squash: 1, plantL: 1, plantR: 1 },
+              { t: 0, view: "profile", drawing: "contact", depth: 0.78, groundX: 860, lHip: 26, plantL: 0, plantR: 0 },
+              { t: 0.5, view: "profile", drawing: "down", depth: 0.62, groundX: 760, lHip: 8 },
+              { t: 1, view: "profile", drawing: "pass", depth: 0.48, groundX: 680, lHip: -6 },
+              { t: 1.5, view: "profile", drawing: "up", depth: 0.36, groundX: 640, lHip: 4 },
+              { t: 2, view: "profile", drawing: "contactR", depth: 0.28, groundX: 600, lHip: 22 },
+              { t: 2.7, view: "threeQuarter", drawing: "stand", depth: 0.24, groundX: 620, lHip: 2, plantL: 1, plantR: 1 },
+              { t: 4.2, view: "threeQuarter", drawing: "sit", depth: 0.24, groundX: 640, lHip: -74, plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur * 0.5, view: "threeQuarter", drawing: "sit", depth: 0.24, groundX: 640, lHip: -70, plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur + 0.8, view: "threeQuarter", drawing: "stand", depth: 0.26, groundX: 660, lHip: 3, plantL: 1, plantR: 1 },
+              { t: duration - 0.2, view: "threeQuarter", drawing: "stand", depth: 0.26, groundX: 660, lHip: 2, plantL: 1, plantR: 1 },
             ]),
             tracks: [],
           },
