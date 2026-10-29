@@ -26,7 +26,9 @@
     "dist:linux": "electron-builder --linux",
     "mcp": "node mcp/server.mjs",
     "demo:voices": "node scripts/render-demo-audio.mjs",
-    "demo:broadcast": "node scripts/render-broadcast-demo.mjs"
+    "demo:broadcast": "node scripts/render-broadcast-demo.mjs",
+    "style:dataset": "node scripts/style/render-training-set.mjs",
+    "style:train": "node scripts/style/train.mjs"
   },
   "build": {
     "appId": "studio.quantimation.desktop",

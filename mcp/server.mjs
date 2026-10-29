@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { rhubarbCues } from "../src/rhubarb.mjs";
+import { drawKey } from "../src/style/draw-key.js";
 const option = process.argv.indexOf("--profile");
 const defaultProfile =
   process.platform === "win32"
@@ -459,10 +460,42 @@ function boundCues(cues) {
   );
   tool(
     "check_model",
-    "Measure a drawn character against the model sheet: head-to-body ratio and whether each hand is one contour.",
+    "Measure a drawn character against the model sheet: head-to-body ratio, palette, silhouette weight and whether each hand is one contour. Off-model traced keys are rejected.",
     { sceneId: z.string().optional(), instanceId: z.string().optional() },
     "check_model",
     true,
+  );
+  server.registerTool(
+    "draw_key",
+    {
+      description: "Generate one key drawing from the style LoRA, trace it to ink cubics, and reject it if it is off the model sheet. Requires a draw backend. Does not invent a picture when no backend is configured.",
+      inputSchema: {
+        character: z.enum(["dot", "teo", "gloam"]),
+        view: z.enum(["front", "threeQuarter", "profile", "back"]),
+        pose: z.string().min(1).max(80).default("stand"),
+        set: z.string().max(40).optional(),
+        depth: z.number().min(0).max(0.92).optional(),
+        groundX: z.number().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async (args) => {
+      try {
+        const drawing = await drawKey(args);
+        let stored = false;
+        try {
+          await studio("author_drawing", drawing);
+          stored = true;
+        } catch {
+          stored = false;
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify({ ...drawing, studio: stored }) }],
+        };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: error.message }] };
+      }
+    },
   );
   tool("undo", "Undo the most recent project mutation.", {}, "undo");
   server.registerResource(

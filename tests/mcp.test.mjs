@@ -85,7 +85,7 @@ test("MCP stdio client negotiates, discovers tools, invokes commands and reads f
   try {
     await client.connect(transport);
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 33);
+    assert.equal(tools.tools.length, 34);
     assert.ok(tools.tools.some((t) => t.name === "onion_skin"));
     assert.ok(tools.tools.some((t) => t.name === "lipsync_line"));
     assert.ok(tools.tools.some((t) => t.name === "render_master"));
@@ -95,6 +95,7 @@ test("MCP stdio client negotiates, discovers tools, invokes commands and reads f
     assert.ok(tools.tools.some((t) => t.name === "inbetween_drawings"));
     assert.ok(tools.tools.some((t) => t.name === "check_scale"));
     assert.ok(tools.tools.some((t) => t.name === "check_model"));
+    assert.ok(tools.tools.some((t) => t.name === "draw_key"));
     assert.ok(tools.tools.some((t) => t.name === "set_camera_shots"));
     const result = await client.callTool({
       name: "get_project",

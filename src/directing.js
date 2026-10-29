@@ -8,6 +8,8 @@ import {
 import { motionReport } from "./onion.js";
 import { armTracks, mergeTracks, poseTracks, solveArm } from "./rig.js";
 import { inbetweenKeys, modelCheck, normalizePose, physicalityReport, scaleCheck } from "./drawn.js";
+import { libraryDrawing } from "./drawings.js";
+import { auditTracedKey } from "./style/trace.js";
 
 function sceneOf(episode, sceneId) {
   const scene = episode.scenes.find((item) => item.id === sceneId);
@@ -119,7 +121,13 @@ export function reportMotion(episode, options) {
     ...physicalityReport(actor, { twos: actor.timing !== "ones" }),
   }));
   report.scale = scaleCheck(scene);
-  report.model = drawn.map((actor) => modelCheck(actor.assetId, actor.drawingKeys[0]));
+  report.model = drawn.map((actor) => {
+    const pose = actor.drawingKeys[0];
+    const check = modelCheck(actor.assetId, pose);
+    const drawing = libraryDrawing(actor.assetId, pose.view || "front", pose.drawing || "stand");
+    const audit = drawing ? auditTracedKey(actor.assetId, drawing) : { ok: true, flags: [] };
+    return { ...check, flags: audit.flags, sheet: audit.ok };
+  });
   return report;
 }
 
