@@ -1,12 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STANDARDS, instantiateStandard } from "../src/standards.js";
-import {
-  FAMILY,
-  familyAsset,
-  familyPoseTracks,
-  familyShowcase,
-} from "../src/family.js";
+import { buildLead } from "../src/cast.js";
+import { poseTracks } from "../src/rig.js";
 import { validateEpisode } from "../src/model.js";
 import { poseAt, speechMouth } from "../src/pose.js";
 import { subtitlesSrt } from "../src/captions.js";
@@ -43,33 +39,43 @@ test("all standards are independent editable trees; invalid palette and density 
   );
 });
 
-test("every family member accepts the reusable pose vocabulary and valid mouth changes", () => {
-  for (const f of FAMILY)
-    for (const pose of ["neutral", "smug", "shocked", "angry", "talking"]) {
-      const p = familyShowcase();
-      p.assets = [familyAsset(f.id)];
-      p.scenes = [
-        {
-          ...p.scenes[0],
-          dialogue: [],
-          instances: [
-            {
-              id: "test",
-              assetId: p.assets[0].id,
-              x: 640,
-              y: 690,
-              motion: "still",
-              tracks: familyPoseTracks(pose),
-            },
-          ],
-        },
-      ];
-      const valid = validateEpisode(p);
-      assert.ok(valid.scenes[0].instances[0].tracks.length);
-      p.scenes[0].instances[0].tracks = [
+test("every lead accepts the reusable pose vocabulary and valid mouth changes", () => {
+  for (const id of ["dot", "teo", "gloam"])
+    for (const pose of ["neutral", "shocked", "talking"]) {
+      const asset = buildLead(id, { id });
+      const episode = validateEpisode({
+        version: 1,
+        title: "Pose",
+        logline: "Pose",
+        genre: "Test",
+        style: "Test",
+        assets: [asset],
+        scenes: [
+          {
+            id: "scene",
+            name: "Scene",
+            duration: 4,
+            background: "#E0D3B4",
+            camera: { x: 640, y: 360, zoom: 1 },
+            instances: [
+              {
+                id: "test",
+                assetId: id,
+                x: 640,
+                y: 690,
+                motion: "still",
+                tracks: poseTracks(pose),
+              },
+            ],
+            dialogue: [],
+          },
+        ],
+      });
+      assert.ok(episode.scenes[0].instances[0].tracks.length);
+      episode.scenes[0].instances[0].tracks = [
         { target: "mouth", keyframes: [{ t: 0, variant: "nonexistent" }] },
       ];
-      assert.throws(() => validateEpisode(p), /Unknown variant/);
+      assert.throws(() => validateEpisode(episode), /Unknown variant/);
     }
   assert.equal(
     poseAt(

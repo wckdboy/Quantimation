@@ -23,6 +23,23 @@ const roles = [
   "leftLeg",
   "rightLeg",
   "decoration",
+  "lid",
+  "jaw",
+  "hair",
+  "hand",
+];
+const LINE_CLASSES = [
+  "contour",
+  "eye",
+  "prop",
+  "mouth",
+  "interior",
+  "detail",
+  "bg",
+  "bgDetail",
+  "bgFar",
+  "fx",
+  "none",
 ];
 function fail(message) {
   throw new Error(message);
@@ -75,6 +92,28 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
     if (s[k] !== undefined) o[k] = num(s[k], k, 0.01, 10);
   if (s.strokeWidth !== undefined)
     o.strokeWidth = num(s.strokeWidth, "strokeWidth", 0, 40);
+  if (s.parallax !== undefined)
+    o.parallax = num(s.parallax, "parallax", 0, 1.5);
+  if (s.follow !== undefined) o.follow = num(s.follow, "follow", 0, 4);
+  if (s.cel === true) o.cel = true;
+  if (s.cel === false) o.cel = false;
+  if (s.turnaround === true) o.turnaround = true;
+  if (s.live !== undefined) {
+    if (!["jaw", "flicker", "drip", "sway"].includes(s.live))
+      fail("Unknown live motion.");
+    o.live = s.live;
+  }
+  if (s.line !== undefined) {
+    if (!LINE_CLASSES.includes(s.line)) fail("Unknown line class.");
+    o.line = s.line;
+  }
+  if (s.taper !== undefined)
+    o.taper = list(s.taper, "taper", 2, 2).map((n) => num(n, "taper", 0, 1));
+  if (s.seed !== undefined) o.seed = num(s.seed, "seed", 0, 1e9);
+  if (s.shadow === true) o.shadow = true;
+  if (s.shadow === false) o.shadow = false;
+  if (s.shadowK !== undefined) o.shadowK = num(s.shadowK, "shadowK", 0, 0.4);
+  if (s.shadowFill !== undefined) o.shadowFill = color(s.shadowFill);
   if (s.fill !== undefined) o.fill = color(s.fill);
   if (s.stroke !== undefined) o.stroke = color(s.stroke);
   if (s.role !== undefined) {
@@ -94,7 +133,7 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.fontSize !== undefined)
     o.fontSize = num(s.fontSize, "font size", 4, 200);
   if (s.children !== undefined)
-    o.children = list(s.children, "children", 200).map((c) =>
+    o.children = list(s.children, "children", 360).map((c) =>
       validateShape(c, depth + 1, counter),
     );
   if (s.variants !== undefined) {
@@ -112,8 +151,19 @@ export function validateShape(s, depth = 0, counter = { n: 0 }) {
   if (s.type === "polygon" && !o.points) fail("A polygon needs points.");
   return o;
 }
+const RETIRED_CAST = new Set(["oona", "quark", "pip"]);
+
+export function rejectRetiredCast(asset) {
+  const id = String(asset?.id || "").toLowerCase();
+  const name = String(asset?.name || "").toLowerCase();
+  if (RETIRED_CAST.has(id) || name.includes("quark") || name.includes("oona") || /\bpip\b/.test(name)) {
+    fail("Retired Quark-style cast cannot be rendered.");
+  }
+}
+
 export function validateAsset(a) {
   if (!a || !KINDS.includes(a.kind)) fail("Asset kind is invalid.");
+  rejectRetiredCast(a);
   const counter = { n: 0 };
   const voice = a.voice
     ? {
@@ -167,6 +217,9 @@ export function validateEpisode(e) {
         rotation: num(p.rotation ?? 0, "rotation", -3600, 3600),
       };
       o.view = p.view || "front";
+      if (p.onOnes === true) o.onOnes = true;
+      if (p.blinkSeed !== undefined)
+        o.blinkSeed = num(p.blinkSeed, "blink seed", 0, 1e9);
       if (!["front", "threeQuarter", "profile", "back"].includes(o.view))
         fail("Unsupported character view.");
       o.beats = list(p.beats || [], "acting beats", 80).map((b) => {
@@ -247,6 +300,42 @@ export function validateEpisode(e) {
       });
       if (new Set(o.tracks.map((k) => k.target)).size !== o.tracks.length)
         fail("Pose tracks must have unique targets.");
+      if (p.timing === "ones" || p.timing === "twos") o.timing = p.timing;
+      if (p.drawingKeys?.length) {
+        const hands = ["relaxed", "grip", "point", "open"];
+        const visemes = ["A", "B", "C", "D", "E", "F", "G", "H", "X"];
+        o.drawingKeys = list(p.drawingKeys, "drawing keys", 400, 1).map((key) => {
+          const drawing = { t: num(key.t ?? 0, "drawing time", 0, duration) };
+          for (const field of [
+            "lean", "weight", "squash", "headTilt", "lShoulder", "lElbow", "rShoulder", "rElbow",
+            "lHip", "lKnee", "rHip", "rKnee", "depth", "groundX", "wx", "wz", "facing", "arc", "pitch", "blink", "plantL", "plantR", "drawU",
+          ]) {
+            if (key[field] !== undefined) drawing[field] = num(key[field], field, -400, 4000);
+          }
+          if (key.view) {
+            if (!["front", "threeQuarter", "profile", "back"].includes(key.view))
+              fail("Unsupported drawing view.");
+            drawing.view = key.view;
+          }
+          if (key.handL) {
+            if (!hands.includes(key.handL)) fail("Unsupported hand drawing.");
+            drawing.handL = key.handL;
+          }
+          if (key.handR) {
+            if (!hands.includes(key.handR)) fail("Unsupported hand drawing.");
+            drawing.handR = key.handR;
+          }
+          if (key.viseme) {
+            if (!visemes.includes(key.viseme)) fail("Unsupported viseme.");
+            drawing.viseme = key.viseme;
+          }
+          if (key.prop) drawing.prop = str(key.prop, "prop", 40);
+          if (key.drawing) drawing.drawing = str(key.drawing, "drawing", 40);
+          if (key.drawingTo) drawing.drawingTo = str(key.drawingTo, "drawing", 40);
+          if (key.character) drawing.character = id(key.character);
+          return drawing;
+        });
+      }
       return o;
     });
     if (new Set(instances.map((p) => p.id)).size !== instances.length)
@@ -274,6 +363,13 @@ export function validateEpisode(e) {
         camera: validateCamera(shot.camera),
       }))
       .sort((a, b) => a.at - b.at);
+    const grade = s.grade
+      ? {
+          shadow: color(s.grade.shadow || "#241811"),
+          highlight: color(s.grade.highlight || "#f2d7a2"),
+          strength: num(s.grade.strength ?? 0.22, "grade strength", 0, 1),
+        }
+      : null;
     return {
       id: id(s.id),
       name: str(s.name, "scene name", 120),
@@ -281,6 +377,29 @@ export function validateEpisode(e) {
       duration,
       environment: s.environment || null,
       background: color(s.background || "#18222e"),
+      ...(grade ? { grade } : {}),
+      ...(s.palette ? { palette: str(s.palette, "palette", 40) } : {}),
+      ...(s.lightAngleDeg !== undefined
+        ? { lightAngleDeg: num(s.lightAngleDeg, "light angle", -360, 360) }
+        : {}),
+      ...(s.horizon !== undefined
+        ? { horizon: num(s.horizon, "horizon", 0.05, 0.9) }
+        : {}),
+      ...(s.floorY !== undefined ? { floorY: num(s.floorY, "floor", 200, 900) } : {}),
+      ...(s.vanishX !== undefined ? { vanishX: num(s.vanishX, "vanishing point", -500, 2000) } : {}),
+      ...(s.lens === true ? { lens: true } : {}),
+      ...(s.layout ? { layout: str(s.layout, "layout", 40) } : {}),
+      ...(s.contactShadow
+        ? { contactShadow: color(s.contactShadow) }
+        : {}),
+      ...(s.rim
+        ? {
+            rim: {
+              color: color(s.rim.color || "#FFC46B"),
+              width: num(s.rim.width ?? 2.5, "rim width", 0, 8),
+            },
+          }
+        : {}),
       camera: validateCamera(s.camera),
       shots,
       sounds: list(s.sounds || [], "sound cues", 100).map((cue) => {
@@ -334,6 +453,8 @@ export function validateCamera(c = {}) {
     panY: num(c.panY ?? 0, "pan y", -720, 720),
     rotation: num(c.rotation ?? 0, "camera tilt", -30, 30),
     perspective,
+    ...(c.shake ? { shake: num(c.shake, "shake", 0, 80) } : {}),
+    ...(c.motivated === true ? { motivated: true } : {}),
   };
 }
 export function activeShot(scene, time) {

@@ -1,0 +1,168 @@
+{
+  "base": "black-forest-labs/FLUX.1-schnell",
+  "license": "Apache-2.0 weights downloaded separately. Training images are original Quantimation drawings.",
+  "images": [
+    {
+      "file": "dot-front-stand.png",
+      "character": "dot",
+      "view": "front",
+      "pose": "stand",
+      "caption": "dot Lind, original character, front view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "dot-threeQuarter-stand.png",
+      "character": "dot",
+      "view": "threeQuarter",
+      "pose": "stand",
+      "caption": "dot Lind, original character, threeQuarter view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "dot-threeQuarter-look.png",
+      "character": "dot",
+      "view": "threeQuarter",
+      "pose": "look",
+      "caption": "dot Lind, original character, threeQuarter view, look pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "dot-threeQuarter-gesture.png",
+      "character": "dot",
+      "view": "threeQuarter",
+      "pose": "gesture",
+      "caption": "dot Lind, original character, threeQuarter view, gesture pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "dot-profile-stand.png",
+      "character": "dot",
+      "view": "profile",
+      "pose": "stand",
+      "caption": "dot Lind, original character, profile view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "dot-back-stand.png",
+      "character": "dot",
+      "view": "back",
+      "pose": "stand",
+      "caption": "dot Lind, original character, back view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-front-stand.png",
+      "character": "teo",
+      "view": "front",
+      "pose": "stand",
+      "caption": "teo Lind, original character, front view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-threeQuarter-stand.png",
+      "character": "teo",
+      "view": "threeQuarter",
+      "pose": "stand",
+      "caption": "teo Lind, original character, threeQuarter view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-stand.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "stand",
+      "caption": "teo Lind, original character, profile view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-contact.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "contact",
+      "caption": "teo Lind, original character, profile view, contact pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-down.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "down",
+      "caption": "teo Lind, original character, profile view, down pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-pass.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "pass",
+      "caption": "teo Lind, original character, profile view, pass pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-up.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "up",
+      "caption": "teo Lind, original character, profile view, up pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-profile-contactR.png",
+      "character": "teo",
+      "view": "profile",
+      "pose": "contactR",
+      "caption": "teo Lind, original character, profile view, contactR pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-threeQuarter-sit.png",
+      "character": "teo",
+      "view": "threeQuarter",
+      "pose": "sit",
+      "caption": "teo Lind, original character, threeQuarter view, sit pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-threeQuarter-sitTalk.png",
+      "character": "teo",
+      "view": "threeQuarter",
+      "pose": "sitTalk",
+      "caption": "teo Lind, original character, threeQuarter view, sitTalk pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "teo-front-hands.png",
+      "character": "teo",
+      "view": "front",
+      "pose": "hands",
+      "caption": "teo Lind, original character, front view, hands pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "gloam-front-stand.png",
+      "character": "gloam",
+      "view": "front",
+      "pose": "stand",
+      "caption": "gloam Lind, original character, front view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "gloam-front-listen.png",
+      "character": "gloam",
+      "view": "front",
+      "pose": "listen",
+      "caption": "gloam Lind, original character, front view, listen pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "gloam-threeQuarter-stand.png",
+      "character": "gloam",
+      "view": "threeQuarter",
+      "pose": "stand",
+      "caption": "gloam Lind, original character, threeQuarter view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "gloam-profile-stand.png",
+      "character": "gloam",
+      "view": "profile",
+      "pose": "stand",
+      "caption": "gloam Lind, original character, profile view, stand pose, flat cel colour, ink contour, warm paper background"
+    },
+    {
+      "file": "set-suburb_kitchen.png",
+      "set": "suburb_kitchen",
+      "caption": "Dot's kitchen, original interior, one-point perspective, flat colour"
+    },
+    {
+      "file": "set-coil_shed.png",
+      "set": "coil_shed",
+      "caption": "coil shed, original interior, one-point perspective, flat colour"
+    },
+    {
+      "file": "set-alien_market.png",
+      "set": "alien_market",
+      "caption": "silt market, original interior, flat colour"
+    }
+  ]
+}

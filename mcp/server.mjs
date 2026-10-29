@@ -6,6 +6,8 @@ import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { rhubarbCues } from "../src/rhubarb.mjs";
+import { drawKey } from "../src/style/draw-key.js";
 const option = process.argv.indexOf("--profile");
 const defaultProfile =
   process.platform === "win32"
@@ -62,12 +64,34 @@ async function studio(action, args = {}) {
 }
 export function createMcpServer() {
   const server = new McpServer(
-    { name: "quantimation-studio", version: "0.2.0" },
+    { name: "quantimation-studio", version: "0.3.0" },
     {
       instructions:
-        "Quantimation is a live 2D animation studio. Inspect the project before editing. All artwork and animation are declarative JSON. Use the production_format resource for shape and camera conventions. Mutations are validated and undoable. Model generation returns a job ID; poll get_generation sparingly. Export runs in real time and writes only to the app’s designated export directory.",
+        "Quantimation is a live 2D animation studio. Inspect the project before editing. All artwork and animation are declarative JSON. Use the production_format resource for shape and camera conventions. Mutations are validated and undoable. Pose, check onion_skin and motion_report, then fix spacing before render_master. Lip-sync uses Rhubarb when wavPath is set. Model generation returns a job ID; poll get_generation sparingly.",
     },
   );
+function boundCues(cues) {
+  if (!Array.isArray(cues) || cues.length > 400) throw new Error("Cue list is too long.");
+  let prev = -1;
+  return cues.map((cue) => {
+    const start = Number(cue?.start);
+    const end = Number(cue?.end);
+    const value = String(cue?.value || "X");
+    if (
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      start < 0 ||
+      end > 180 ||
+      end < start
+    )
+      throw new Error("Cue timestamps must be finite, ordered and within 180 seconds.");
+    if (start + 1e-6 < prev) throw new Error("Cues must be ordered.");
+    prev = start;
+    if (!/^[A-HX]$/.test(value)) throw new Error("Unknown mouth cue.");
+    return { start, end, value };
+  });
+}
+
   const tool = (name, description, inputSchema, action, readOnly = false) =>
     server.registerTool(
       name,
@@ -82,8 +106,32 @@ export function createMcpServer() {
       },
       async (args) => {
         try {
+          if (action === "lipsync_line" && args.wavPath && !args.cues) {
+            try {
+              args = {
+                ...args,
+                cues: await rhubarbCues(args.wavPath, {
+                  dialog: args.dialog,
+                  bin: process.env.RHUBARB,
+                }),
+              };
+            } catch (error) {
+              return {
+                isError: true,
+                content: [
+                  {
+                    type: "text",
+                    text: `Rhubarb lip sync failed: ${error.message}`,
+                  },
+                ],
+              };
+            }
+          }
+          if (action === "lipsync_line" && Array.isArray(args.cues)) {
+            args = { ...args, cues: boundCues(args.cues) };
+          }
           const result = await studio(action, args);
-          if (action === "capture_frame")
+          if (action === "capture_frame" || action === "onion_skin")
             return {
               content: [
                 { type: "image", data: result.data, mimeType: result.mimeType },
@@ -251,10 +299,203 @@ export function createMcpServer() {
     "cancel_generation",
   );
   tool(
+    "apply_pose",
+    "Apply a named acting pose to an actor: neutral, smug, shocked, angry, talking, anticipate, squash, stretch, or blink. Keys are inserted at 'at' seconds.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      pose: z.string(),
+      at: z.number().min(0).optional(),
+    },
+    "apply_pose",
+  );
+  tool(
+    "solve_ik",
+    "Solve two-bone IK for a lead's arm and write upper-arm, forearm and hand pose tracks. Target x/y are in the character's local drawing space.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      arm: z.enum(["left", "right"]).default("right"),
+      x: z.number(),
+      y: z.number(),
+      at: z.number().min(0).optional(),
+      hand: z.enum(["relaxed", "point", "fist", "spread", "hold"]).default("point"),
+    },
+    "solve_ik",
+  );
+  tool(
+    "lipsync_line",
+    "Drive the nine mouth drawings from a dialogue line. Pass wavPath to run Rhubarb Lip Sync (MIT); otherwise the studio estimates Rhubarb shapes from the text.",
+    {
+      sceneId: z.string(),
+      lineId: z.string(),
+      wavPath: z.string().optional(),
+      dialog: z.string().optional(),
+      cues: z
+        .array(
+          z.object({
+            start: z.number().min(0).max(180),
+            end: z.number().min(0).max(180),
+            value: z.string().max(4),
+          }),
+        )
+        .max(400)
+        .optional(),
+    },
+    "lipsync_line",
+  );
+  tool(
+    "onion_skin",
+    "Render an onion-skin composite of frames N-k through N+k with tinted ghosts and motion-path trails for the head, hands and pupils.",
+    {
+      time: z.number().min(0),
+      before: z.number().int().min(0).max(8).default(2),
+      after: z.number().int().min(0).max(8).default(2),
+      opacity: z.number().min(0.05).max(1).default(0.45),
+      prevTint: z.string().optional(),
+      nextTint: z.string().optional(),
+      trails: z.boolean().default(true),
+    },
+    "onion_skin",
+    true,
+  );
+  tool(
+    "motion_report",
+    "Numeric motion-quality report: per-joint speed, acceleration spikes, arc deviation and frame-to-frame jumps. Use it with onion_skin before rendering.",
+    {
+      sceneId: z.string().optional(),
+      instanceId: z.string().optional(),
+    },
+    "motion_report",
+    true,
+  );
+  tool(
+    "render_master",
+    "Start a deterministic offline master: 1080p or 4K H.264 MP4, PNG sequence and muxed audio. Not a realtime capture.",
+    {
+      height: z.union([z.literal(720), z.literal(1080), z.literal(2160)]).default(1080),
+      fps: z.number().int().min(12).max(30).default(24),
+      captions: z.boolean().default(false),
+    },
+    "render_master",
+  );
+  tool(
     "export_episode",
     "Start a 720p WebM export with speech and a removable SRT subtitle sidecar. Burned-in captions default off. Check get_project for completion and file path.",
     { captions: z.boolean().optional() },
     "export_episode",
+  );
+  tool(
+    "author_drawing",
+    "Store a key drawing for a character, view and pose. Contours must be smooth cubic or quadratic SVG paths, one closed shape per form. This is the model sheet, not a polygon rig.",
+    {
+      character: z.string().min(1).max(40),
+      view: z.enum(["front", "threeQuarter", "profile", "back"]),
+      pose: z.string().min(1).max(40).default("stand"),
+      width: z.number().min(40).max(2000).optional(),
+      height: z.number().min(40).max(2000).optional(),
+      crown: z.number().optional(),
+      chin: z.number().optional(),
+      feet: z.array(z.array(z.number()).length(2)).max(4).optional(),
+      shapes: z.array(z.object({
+        id: z.string().min(1).max(40),
+        path: z.string().min(8).max(20000),
+        fill: z.string().max(20).optional(),
+        stroke: z.string().max(20).optional(),
+        line: z.string().max(20).optional(),
+        role: z.string().max(20).optional(),
+      })).min(1).max(48),
+    },
+    "author_drawing",
+  );
+  tool(
+    "author_prop",
+    "Store a constructed prop. It must be a perspective cylinder or box, or custom cubics, with an interior line, a shade side, a highlight and a cast shadow. A single filled outline is rejected as a blob.",
+    {
+      id: z.string().min(1).max(40),
+      construction: z.object({
+        kind: z.enum(["cylinder", "box"]).optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        z: z.number().optional(),
+        fill: z.string().max(20).optional(),
+      }).optional(),
+      shapes: z.array(z.object({
+        id: z.string().min(1).max(40),
+        path: z.string().min(8).max(20000),
+        fill: z.string().max(20).optional(),
+        line: z.string().max(20).optional(),
+      })).min(4).max(24).optional(),
+    },
+    "author_prop",
+  );
+  tool(
+    "set_gesture",
+    "Author a drawn key pose for a character. The pose is construction (lean, weight, limb angles, hand drawing, prop grip), not a cut-out transform. Timing stays on twos unless the actor is set to ones.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      at: z.number().min(0).optional(),
+      pose: object.optional(),
+    },
+    "set_gesture",
+  );
+  tool(
+    "inbetween_drawings",
+    "Generate inbetween drawings on twos between gesture keys. Spacing eases in and out, and the root can travel on an arc.",
+    {
+      sceneId: z.string(),
+      instanceId: z.string(),
+      step: z.number().min(1 / 24).max(1).optional(),
+      arc: z.number().min(-80).max(80).optional(),
+    },
+    "inbetween_drawings",
+  );
+  tool(
+    "check_scale",
+    "Flag characters who float, sink, or are the wrong size for their depth on the floor grid, and whose cast heights disagree.",
+    { sceneId: z.string().optional() },
+    "check_scale",
+    true,
+  );
+  tool(
+    "check_model",
+    "Measure a drawn character against the model sheet: head-to-body ratio, palette, silhouette weight and whether each hand is one contour. Off-model traced keys are rejected.",
+    { sceneId: z.string().optional(), instanceId: z.string().optional() },
+    "check_model",
+    true,
+  );
+  server.registerTool(
+    "draw_key",
+    {
+      description: "Generate one key drawing from the style LoRA, trace it to ink cubics, and reject it if it is off the model sheet. Requires a draw backend. Does not invent a picture when no backend is configured.",
+      inputSchema: {
+        character: z.enum(["dot", "teo", "gloam"]),
+        view: z.enum(["front", "threeQuarter", "profile", "back"]),
+        pose: z.string().min(1).max(80).default("stand"),
+        set: z.string().max(40).optional(),
+        depth: z.number().min(0).max(0.92).optional(),
+        groundX: z.number().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async (args) => {
+      try {
+        const drawing = await drawKey(args);
+        let stored = false;
+        try {
+          await studio("author_drawing", drawing);
+          stored = true;
+        } catch {
+          stored = false;
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify({ ...drawing, studio: stored }) }],
+        };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: error.message }] };
+      }
+    },
   );
   tool("undo", "Undo the most recent project mutation.", {}, "undo");
   server.registerResource(

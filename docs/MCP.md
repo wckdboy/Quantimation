@@ -65,7 +65,7 @@ Any local process with access to your profile/token can control the studio. Regi
 
 Use `review_production` to get staging findings and time samples, then `capture_frame` to receive actual PNG frames. Inspect every shot and extreme pose before an expensive export. Review playback and speech separately. Neither a contact sheet nor passing automated checks certifies creative quality. Exports return `reviewRequired: true`, render statistics and warnings through `get_project.lastExport`.
 
-The studio now exposes 21 tools: the 15 editing/production tools listed above plus these two review tools. Named pose tracks and procedural sound cues are documented in the production format.
+The studio exposes 27 tools. Besides the editing tools above, agents can `apply_pose`, `solve_ik`, `lipsync_line` (Rhubarb when `wavPath` is set), `onion_skin`, `motion_report` and `render_master` (offline 1080p/4K). Named pose tracks and procedural sound cues are documented in the production format.
 
 ## Reusable standards
 

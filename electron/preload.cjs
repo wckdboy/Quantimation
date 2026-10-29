@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("quantimation", {
   },
   mcpRespond: (id, response) =>
     ipcRenderer.invoke("mcp:response", id, response),
+  exportMaster: (request) => ipcRenderer.invoke("master:export", request),
   onProgress: (callback) => {
     const listener = (_event, value) => callback(value);
     ipcRenderer.on("generation:progress", listener);

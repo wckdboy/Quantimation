@@ -33,7 +33,7 @@ test("asset designer receives an existing standard with its joints and mouth dra
         id: "performer",
         name: "Custom performer",
         kind: "character",
-        standardId: "family_oona",
+        standardId: "dot",
       },
       new AbortController().signal,
     );

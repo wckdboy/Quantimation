@@ -2,7 +2,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { dragonEpisode as demoEpisode } from "../src/dragon.js";
-import { familyShowcase } from "../src/family.js";
 import { neuralSpeech, stopNeuralSpeech } from "../electron/neural-speech.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cache =
@@ -11,7 +10,7 @@ const destination = path.join(root, "resources", "demo-audio");
 await mkdir(destination, { recursive: true });
 const index = [];
 try {
-  for (const project of [demoEpisode(), familyShowcase()]) {
+  for (const project of [demoEpisode()]) {
     for (const scene of project.scenes) {
       for (const line of scene.dialogue) {
         const asset = project.assets.find((a) => a.id === line.speaker);

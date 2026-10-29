@@ -36,18 +36,6 @@
     "file": "dragon_6.wav"
   },
   {
-    "text": "Relax. I have made this mistake in seven dimensions. I am practically an expert.",
-    "voiceId": "bf_emma",
-    "voiceSpeed": 0.94,
-    "file": "family_oona.wav"
-  },
-  {
-    "text": "Does the emergency exit have to be a mouth? It is looking at me.",
-    "voiceId": "am_puck",
-    "voiceSpeed": 1.11,
-    "file": "family_pip.wav"
-  },
-  {
     "text": "Nobody touches the singularity until they have cleared the dinner table.",
     "voiceId": "af_nicole",
     "voiceSpeed": 1.02,

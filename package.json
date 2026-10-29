@@ -1,8 +1,12 @@
 {
   "name": "quantimation",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A prompt-directed, programmable 2D animation studio for desktop.",
-  "author": "Quantimation contributors",
+  "author": {
+    "name": "Quantimation contributors",
+    "email": "dev@quantimation.studio"
+  },
+  "homepage": "https://github.com/wckdboy/Quantimation",
   "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -21,7 +25,10 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "mcp": "node mcp/server.mjs",
-    "demo:voices": "node scripts/render-demo-audio.mjs"
+    "demo:voices": "node scripts/render-demo-audio.mjs",
+    "demo:broadcast": "node scripts/render-broadcast-demo.mjs",
+    "style:dataset": "node scripts/style/render-training-set.mjs",
+    "style:train": "node scripts/style/train.mjs"
   },
   "build": {
     "appId": "studio.quantimation.desktop",
@@ -63,7 +70,8 @@
         "AppImage",
         "deb"
       ],
-      "category": "AudioVideo"
+      "category": "AudioVideo",
+      "maintainer": "Quantimation contributors <dev@quantimation.studio>"
     },
     "nsis": {
       "oneClick": false,
@@ -71,7 +79,8 @@
     },
     "asarUnpack": [
       "node_modules/onnxruntime-node/**/*",
-      "node_modules/phonemizer/**/*"
+      "node_modules/phonemizer/**/*",
+      "node_modules/@napi-rs/canvas/**/*"
     ]
   },
   "devDependencies": {
@@ -81,8 +90,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@napi-rs/canvas": "^0.1.80",
     "kokoro-js": "1.2.1",
     "mespeak": "2.0.2",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "sharp": "0.35.5"
   }
 }

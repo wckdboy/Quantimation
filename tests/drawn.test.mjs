@@ -1,0 +1,173 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createCanvas } from "@napi-rs/canvas";
+import { drawCharacter, inbetweenKeys, modelCheck, samplePose, scaleCheck, stagingCheck } from "../src/drawn.js";
+import { reviewEpisode } from "../src/review.js";
+import { authorProp, blobFlags, resetProps } from "../src/drawings/props.js";
+import { kitchenEpisode } from "../src/broadcast-demo.js";
+import { cameraRig, project } from "../src/layout.js";
+import { buildSet } from "../src/sets.js";
+import { renderFrame } from "../src/renderer.js";
+
+test("a drawn hand is one contour and a held drawing does not change on the next frame", () => {
+  for (const id of ["dot", "teo", "gloam"]) {
+    const art = drawCharacter(id, { view: "front" });
+    assert.equal(art.metrics.handLoops, 2, id);
+    assert.ok(art.shapes.some((shape) => shape.line === "contour"));
+  }
+  const profile = drawCharacter("dot", { view: "profile" });
+  assert.equal(profile.metrics.handLoops, 1);
+  const three = drawCharacter("dot", { view: "threeQuarter", rShoulder: -60, handR: "point" });
+  assert.ok(three.metrics.handLoops >= 1);
+  const keys = inbetweenKeys(
+    [
+      { t: 0, character: "dot", groundX: 0, lShoulder: 0 },
+      { t: 1, character: "dot", groundX: 40, lShoulder: 30, arc: 12 },
+    ],
+    { step: 2 / 24 },
+  );
+  const a = samplePose(keys, 0.5, { twos: true });
+  const b = samplePose(keys, 0.5 + 1 / 24, { twos: true });
+  assert.equal(a.boil, b.boil);
+  assert.notEqual(samplePose(keys, 0.5 + 2 / 24, { twos: true }).boil, a.boil);
+  const sheet = modelCheck("teo");
+  assert.ok(sheet.measured > 3);
+  assert.equal(sheet.handLoops, 2);
+});
+
+test("page four stores redrawn keys for a walk, a seat, and a gripped prop", () => {
+  const episode = kitchenEpisode();
+  const scene = episode.scenes[0];
+  const teo = scene.instances.find((actor) => actor.id === "teo");
+  const dot = scene.instances.find((actor) => actor.id === "dot");
+  assert.ok(teo.drawingKeys.length > 8);
+  assert.ok(teo.drawingKeys.some((key) => key.depth >= 0.18 && key.depth <= 0.28));
+  assert.ok(teo.drawingKeys.some((key) => key.depth <= 0.1));
+  assert.ok(teo.drawingKeys.some((key) => key.lHip < -40));
+  assert.equal(dot.drawingKeys[0].prop, "tablet");
+  assert.equal(dot.drawingKeys[0].handL, "grip");
+  assert.equal(scene.shots.length, 4);
+  assert.ok(scene.shots.some((shot) => shot.camera.perspective === "low"));
+  const kitchen = episode.assets.find((asset) => asset.id === "dot_kitchen");
+  assert.ok(kitchen.shapes.some((shape) => shape.parallax > 0));
+  assert.equal(JSON.stringify(kitchen.shapes).includes("ellipse"), false);
+  assert.ok(teo.drawingKeys.some((key) => key.lHip > -8 && key.t > teo.drawingKeys.find((seat) => seat.lHip < -40).t));
+});
+
+test("Teo's model sheet is smooth Bézier keys that morph", () => {
+  const front = drawCharacter("teo", { view: "front", drawing: "stand" });
+  const quarter = drawCharacter("teo", { view: "threeQuarter", drawing: "stand" });
+  const profile = drawCharacter("teo", { view: "profile", drawing: "stand" });
+  for (const art of [front, quarter, profile]) {
+    assert.ok(art.shapes.every((shape) => shape.type === "path" && /[CcQq]/.test(shape.path)));
+    assert.equal(art.shapes.some((shape) => shape.type === "polygon" || shape.type === "ellipse"), false);
+  }
+  assert.equal(front.metrics.handLoops, 2);
+  assert.equal(profile.metrics.handLoops, 1);
+  assert.notEqual(front.shapes.find((shape) => shape.role === "head").path, profile.shapes.find((shape) => shape.role === "head").path);
+  const profileStand = drawCharacter("teo", { view: "profile", drawing: "stand" });
+  const mid = drawCharacter("teo", { view: "profile", drawing: "stand", drawingTo: "contact", drawU: 0.5 });
+  assert.notEqual(mid.shapes.find((shape) => shape.id === "legF").path, profileStand.shapes.find((shape) => shape.id === "legF").path);
+  assert.match(mid.shapes.find((shape) => shape.id === "legF").path, /C/);
+});
+
+test("a rendered character is one opaque drawing", () => {
+  const episode = kitchenEpisode();
+  const canvas = createCanvas(1280, 720);
+  for (const frame of [100, 300]) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 1280, 720);
+    renderFrame(canvas, episode, frame / 24, { ink: "broadcast", captions: false, actorsOnly: true });
+    const data = ctx.getImageData(0, 0, 1280, 720).data;
+    const alphaAt = (x, y) => data[(y * 1280 + x) * 4 + 3];
+    let ghosts = 0;
+    for (let y = 1; y < 719; y += 1) {
+      for (let x = 1; x < 1279; x += 1) {
+        const alpha = alphaAt(x, y);
+        if (alpha < 40 || alpha > 210) continue;
+        let band = 0;
+        let open = false;
+        for (let dy = -2; dy <= 2; dy += 1) {
+          for (let dx = -2; dx <= 2; dx += 1) {
+            const neighbor = alphaAt(x + dx, y + dy);
+            if (neighbor < 16) open = true;
+            if (Math.abs(dx) + Math.abs(dy) === 1 && neighbor >= 40 && neighbor <= 220) band += 1;
+          }
+        }
+        if (!open && band >= 3) ghosts += 1;
+      }
+    }
+    assert.ok(ghosts < 40, `frame ${frame} blends a second drawing (${ghosts} interior pixels)`);
+  }
+  const sit = drawCharacter("teo", { view: "threeQuarter", drawing: "sit" });
+  assert.equal(sit.shapes.some((shape) => String(shape.id).startsWith("chair")), false);
+});
+
+test("every shot keeps scale, spacing, and feet on the floor", () => {
+  const scene = kitchenEpisode().scenes[0];
+  const scale = scaleCheck(scene);
+  const staging = stagingCheck(scene);
+  assert.deepEqual(scale.flags, [], JSON.stringify(scale.flags));
+  assert.deepEqual(staging.flags, [], JSON.stringify(staging.flags));
+  assert.ok(scene.shots.some((shot) => shot.camera.perspective === "low"));
+  const low = buildSet("suburb_kitchen_low");
+  const eye = buildSet("suburb_kitchen");
+  assert.notEqual(JSON.stringify(low.shapes), JSON.stringify(eye.shapes));
+  assert.equal(JSON.stringify(low.shapes).includes("ellipse"), false);
+  assert.ok(JSON.stringify(eye.shapes).includes("#221D26"));
+});
+
+test("construction keeps inner lines, a real turn, and a low lens converges", () => {
+  const front = drawCharacter("dot", { view: "front" });
+  const quarter = drawCharacter("dot", { view: "threeQuarter" });
+  const profile = drawCharacter("dot", { view: "profile" });
+  assert.ok(front.shapes.filter((shape) => shape.line === "contour").length > 6);
+  assert.ok(front.shapes.some((shape) => shape.line === "interior"));
+  assert.notEqual(front.shapes.find((shape) => shape.role === "head").path, profile.shapes.find((shape) => shape.role === "head").path);
+  assert.notEqual(quarter.shapes.find((shape) => shape.role === "head").path, front.shapes.find((shape) => shape.role === "head").path);
+  const grip = drawCharacter("dot", { view: "threeQuarter", handL: "grip", prop: "tablet" });
+  assert.ok(grip.shapes.some((shape) => shape.line === "prop"));
+  const gloam = drawCharacter("gloam", { view: "front", handL: "open" });
+  assert.equal(gloam.metrics.handLoops, 2);
+  const low = cameraRig("Low angle", "low", "kitchen");
+  const a = project(low, [0, 0, 220]);
+  const b = project(low, [0, 220, 220]);
+  const c = project(low, [420, 0, 220]);
+  const d = project(low, [420, 220, 220]);
+  const slope = (p, q) => (q.x - p.x) / (q.y - p.y);
+  assert.ok(Math.abs(slope(a, b) - slope(c, d)) > 0.02);
+  for (const id of ["suburb_kitchen", "coil_shed", "alien_market"]) {
+    const set = buildSet(id);
+    assert.ok(set.shapes.some((shape) => shape.parallax > 0));
+    const flat = JSON.stringify(set.shapes);
+    assert.equal(flat.includes("ellipse"), false);
+  }
+});
+
+test("constructed props keep a shade, a highlight, an interior line and a shadow", () => {
+  const flat = (id) => buildSet(id).shapes[0].children;
+  assert.deepEqual(blobFlags(flat("suburb_kitchen")), [], JSON.stringify(blobFlags(flat("suburb_kitchen"))));
+  assert.deepEqual(blobFlags(flat("coil_shed"), { required: ["toaster", "mug", "jar", "board", "towel"] }), []);
+  assert.deepEqual(blobFlags(flat("alien_market"), { required: ["bowl", "plates", "jar", "mug"] }), []);
+  for (const id of ["suburb_kitchen", "coil_shed", "alien_market"]) {
+    assert.ok(flat(id).length <= 360, `${id} has ${flat(id).length} shapes`);
+  }
+  assert.throws(() => authorProp({
+    id: "mug",
+    shapes: ["body", "shade", "hi", "shadow"].map((part) => ({
+      id: `mug_${part}`,
+      path: "M0 0C1 0 2 0 3 0C3 1 2 1 0 1Z",
+      fill: "#ffffff",
+      line: part === "hi" ? "interior" : "prop",
+    })),
+  }), /Blob prop/);
+  const stored = authorProp({ id: "kettle", construction: { x: 10, z: 24 } });
+  assert.ok(stored.contours >= 6);
+  resetProps();
+});
+
+test("every 12th page-four frame keeps the cast on model and on the floor", () => {
+  const report = reviewEpisode(kitchenEpisode(), { createCanvas, step: 12 });
+  assert.deepEqual(report.failures, [], JSON.stringify(report.failures, null, 2));
+  assert.ok(report.checked >= 30);
+});

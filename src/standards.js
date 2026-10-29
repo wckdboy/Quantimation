@@ -1,6 +1,7 @@
 import { validateAsset } from "./model.js";
 import { dragonEpisode } from "./dragon.js";
-import { FAMILY, familyAsset } from "./family.js";
+import { buildSet, SET_CATALOG } from "./sets.js";
+import { CAST, buildLead } from "./cast.js";
 export const STYLE_KIT = {
   name: "Crooked cosmos",
   ink: "#181e23",
@@ -14,14 +15,9 @@ export const STYLE_KIT = {
   shadow: "#394759",
 };
 export const STANDARDS = [
-  ...FAMILY.map((f) => ({
-    id: "family_" + f.id,
-    name: f.name,
-    kind: "character",
-    defaultParameters: { ink: "#24242c", skin: f.skin, accent: f.coat },
-    description:
-      f.role +
-      ". Articulated family rig with nine mouth drawings and four hand poses.",
+  ...CAST.map((lead) => ({
+    ...lead,
+    defaultParameters: { ink: "#221D26" },
   })),
   {
     id: "performer_rig",
@@ -36,8 +32,8 @@ export const STANDARDS = [
     kind: "character",
     defaultParameters: {
       ink: "#24242c",
-      skin: FAMILY[1].skin,
-      accent: FAMILY[1].coat,
+      skin: "#8A5B3A",
+      accent: "#4A6385",
     },
     description:
       "Reusable biped with head, eyes, mouth and independently pivoted limbs.",
@@ -88,10 +84,11 @@ export const STANDARDS = [
     description: "Reusable wooden prop with a side plane, seams and bolts.",
   },
   {
-    id: "portal",
-    name: "Unstable portal",
+    id: "seam",
+    name: "Reality seam",
     kind: "effect",
-    description: "Irregular nested aperture with independently keyed rings.",
+    description:
+      "A vertical tear with layered offset edges. Not a ring and not a swirl.",
   },
   {
     id: "city",
@@ -114,6 +111,7 @@ export const STANDARDS = [
     description:
       "A reusable star field with a ringed planet, moon and orbital silhouettes.",
   },
+  ...SET_CATALOG,
 ];
 export function instantiateStandard(
   standardId,
@@ -134,11 +132,16 @@ export function instantiateStandard(
   const seed = parameters.seed ?? 1;
   if (!Number.isInteger(seed) || seed < 0 || seed > 100000)
     throw new Error("Seed must be an integer from 0 to 100000.");
-  if (standardId.startsWith("family_") || standardId === "human_rig")
-    return familyAsset(
-      standardId === "human_rig" ? "pip" : standardId.slice(7),
-      { id, name, parameters },
-    );
+  if (standardId === "dot" || standardId === "teo" || standardId === "gloam")
+    return buildLead(standardId, { id, name });
+  if (standardId === "human_rig") return buildLead("dot", { id, name });
+  const set = buildSet(standardId, {
+    id,
+    name,
+    description: item.description,
+    palette: c,
+  });
+  if (set) return set;
   const P = (path, fill, extra = {}) => ({
     type: "path",
     path,
@@ -322,31 +325,13 @@ export function instantiateStandard(
       E(141, 162, 3, 3, c.ink),
     ];
   }
-  if (standardId === "portal") {
-    width = 360;
-    height = 470;
+  if (standardId === "seam") {
+    width = 280;
+    height = 520;
     shapes = [
-      G("outer_ring", 0, 0, [
-        P(
-          "M179 12 Q294 6 337 157 Q387 302 289 422 Q157 516 57 392 Q-30 250 28 111 Q71 5 179 12 Z",
-          c.foliage,
-        ),
-      ]),
-      G("inner_ring", 0, 0, [
-        P(
-          "M176 46 Q275 37 302 162 Q345 284 260 385 Q158 463 84 362 Q14 247 63 123 Q93 45 176 46 Z",
-          c.light,
-        ),
-      ]),
-      P(
-        "M178 81 Q254 66 276 172 Q312 284 240 355 Q158 421 111 339 Q48 250 91 144 Q115 84 178 81 Z",
-        c.shadow,
-      ),
-      P(
-        "M149 127 Q246 107 234 228 Q225 316 149 295 Q95 271 143 209 Q194 179 196 232",
-        "transparent",
-        { stroke: c.accent, strokeWidth: 9 },
-      ),
+      P("M132 20 L150 80 L138 160 L156 250 L140 340 L158 430 L146 500 L118 500 L128 420 L112 330 L130 240 L114 150 L126 70 Z", "#2a3140", { line: "bg" }),
+      P("M150 24 L176 90 L160 170 L184 260 L166 350 L188 440 L170 500 L150 500 L162 430 L144 340 L164 250 L146 160 L158 80 Z", "#6d5a78", { line: "bgDetail" }),
+      P("M118 40 L126 120 L110 210 L128 300 L112 390 L130 470", "transparent", { line: "bgDetail", stroke: "#c8b7d2" }),
     ];
   }
   if (standardId === "planet") {

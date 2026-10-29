@@ -8,11 +8,13 @@ import {
   KINDS,
   MOTIONS,
 } from "./model.js";
-import { renderFrame, renderAsset } from "./renderer.js";
+import { renderFrame, renderAsset, renderOnionSkin } from "./renderer.js";
+import { applyIk, applyLipsync, applyPose, inbetweenDrawings, reportMotion, setGesture } from "./directing.js";
+import { authorDrawing, authorProp } from "./drawings.js";
 import { auditProduction, summarizeRender } from "./quality.js";
 import { soundBuffer } from "./sound.js";
 import { subtitlesSrt } from "./captions.js";
-import { familyShowcase } from "./family.js";
+import { castShowcase } from "./cast.js";
 import { poseAt } from "./pose.js";
 import { STANDARDS, STYLE_KIT, instantiateStandard } from "./standards.js";
 const $ = (id) => document.getElementById(id),
@@ -86,6 +88,15 @@ let history = [],
   renderFrames = [],
   renderFault = null;
 let customStandards = [];
+let onion = {
+  enabled: false,
+  before: 2,
+  after: 2,
+  opacity: 0.45,
+  prev: "#6eb6ff",
+  next: "#ff9d4a",
+  trails: true,
+};
 try {
   customStandards = JSON.parse(
     localStorage.getItem("quantimation-standards") || "[]",
@@ -190,10 +201,8 @@ function selectScene(index) {
   const t = episode.scenes.slice(0, index).reduce((n, s) => n + s.duration, 0);
   seek(t);
 }
-function draw() {
-  const hit = locate(episode, time);
-  sceneIndex = hit.index;
-  renderFrame($("stage"), episode, time, {
+function stageOptions() {
+  return {
     captions: captioned,
     selected: exporting
       ? null
@@ -208,7 +217,23 @@ function draw() {
       for (let i = 0; i < 160; i++) sum += (samples[start + i] || 0) ** 2;
       return Math.min(1, Math.sqrt(sum / 160) * 7);
     },
-  });
+  };
+}
+function draw() {
+  const hit = locate(episode, time);
+  sceneIndex = hit.index;
+  if (onion.enabled && !exporting)
+    renderOnionSkin($("stage"), episode, time, {
+      ...stageOptions(),
+      captions: false,
+      before: onion.before,
+      after: onion.after,
+      opacity: onion.opacity,
+      prevTint: onion.prev,
+      nextTint: onion.next,
+      trails: onion.trails,
+    });
+  else renderFrame($("stage"), episode, time, stageOptions());
   $("scrubber").value = time;
   $("timecode").innerHTML =
     `${fmt(time)} <span>/ ${fmt(duration(episode))}</span>`;
@@ -1238,6 +1263,28 @@ $("play").onclick = togglePlay;
 $("restart").onclick = () => seek(0);
 $("scrubber").oninput = () => seek(+$("scrubber").value);
 $("export").onclick = qualityModal;
+const readOnion = () => {
+  onion = {
+    enabled: $("onionEnabled").checked,
+    before: Number($("onionBefore").value),
+    after: Number($("onionAfter").value),
+    opacity: Number($("onionOpacity").value),
+    prev: $("onionPrev").value,
+    next: $("onionNext").value,
+    trails: $("onionTrails").checked,
+  };
+  draw();
+};
+for (const id of [
+  "onionEnabled",
+  "onionBefore",
+  "onionAfter",
+  "onionOpacity",
+  "onionPrev",
+  "onionNext",
+  "onionTrails",
+])
+  $(id).addEventListener("input", readOnion);
 $("reviewProduction").onclick = qualityModal;
 $("renderSpeech").onclick = async () => {
   if (busy) return;
@@ -1428,7 +1475,7 @@ async function mcpModal() {
   const cfg = bridge ? await bridge.settings() : {};
   modal(
     "Direct with MCP",
-    `<div class="mcp-banner">${cfg.mcpReady ? "● Local studio bridge is ready" : "Open the desktop app to activate the local bridge"}<br>21 tools · frame capture · production review · validated edits · live playback · audiovisual export</div><p>Connect your LLM client to Quantimation’s stdio MCP server. The client can create characters and props, write dialogue, direct poses, build camera sequences and export episodes. It can author scene data directly without a separate model API key.</p><label>Client configuration<textarea class="code-editor" style="height:160px;min-height:160px" readonly>${esc(JSON.stringify({ mcpServers: { quantimation: { command: "node", args: ["/absolute/path/to/Quantimation/mcp/server.mjs"] } } }, null, 2))}</textarea></label><p>Clone the public Quantimation repository, run npm ci, then replace the path above with your checkout’s MCP server file. Keep this desktop app open. Full setup and tool reference: docs/MCP.md in the repository.</p><p class="tip-box">Try: “Inspect the episode, add a reaction close-up before the punchline, give the dragon a shrug, and preview that scene.”</p><p>Connection credentials stay in your local profile. No remote service or public port is opened.</p>`,
+    `<div class="mcp-banner">${cfg.mcpReady ? "● Local studio bridge is ready" : "Open the desktop app to activate the local bridge"}<br>27 tools · onion skin · lip sync · offline master · production review</div><p>Connect your LLM client to Quantimation’s stdio MCP server. The client can create characters and props, write dialogue, direct poses, build camera sequences and export episodes. It can author scene data directly without a separate model API key.</p><label>Client configuration<textarea class="code-editor" style="height:160px;min-height:160px" readonly>${esc(JSON.stringify({ mcpServers: { quantimation: { command: "node", args: ["/absolute/path/to/Quantimation/mcp/server.mjs"] } } }, null, 2))}</textarea></label><p>Clone the public Quantimation repository, run npm ci, then replace the path above with your checkout’s MCP server file. Keep this desktop app open. Full setup and tool reference: docs/MCP.md in the repository.</p><p class="tip-box">Try: “Inspect the episode, add a reaction close-up before the punchline, give the dragon a shrug, and preview that scene.”</p><p>Connection credentials stay in your local profile. No remote service or public port is opened.</p>`,
   );
 }
 const mcpButton = document.createElement("button");
@@ -1466,8 +1513,9 @@ if (bridge?.onMcpRequest)
           );
         pause();
         const before = JSON.stringify(episode);
+        let detail = null;
         try {
-          fn();
+          detail = fn() || null;
           const valid = validateEpisode(episode);
           episode = JSON.parse(before);
           checkpoint();
@@ -1479,7 +1527,11 @@ if (bridge?.onMcpRequest)
           episode = JSON.parse(before);
           throw error;
         }
-        return { updated: true, title: episode.title };
+        return {
+          updated: true,
+          title: episode.title,
+          ...(detail && typeof detail === "object" ? detail : {}),
+        };
       };
       if (c.action === "get_project")
         result = {
@@ -1594,6 +1646,97 @@ if (bridge?.onMcpRequest)
           togglePlay();
         }
         result = { playing, time };
+      } else if (c.action === "apply_pose")
+        result = mutation(() => {
+          applyPose(episode, c);
+        });
+      else if (c.action === "solve_ik")
+        result = mutation(() => {
+          applyIk(episode, c);
+        });
+      else if (c.action === "author_prop")
+        result = authorProp({ id: c.id, construction: c.construction, shapes: c.shapes });
+      else if (c.action === "author_drawing")
+        result = authorDrawing({
+          character: c.character,
+          view: c.view,
+          pose: c.pose,
+          shapes: c.shapes,
+          feet: c.feet,
+          crown: c.crown,
+          chin: c.chin,
+          width: c.width,
+          height: c.height,
+        });
+      else if (c.action === "set_gesture")
+        result = mutation(() =>
+          setGesture(episode, {
+            sceneId: c.sceneId,
+            instanceId: c.instanceId,
+            at: c.at,
+            pose: c.pose || {},
+          }),
+        );
+      else if (c.action === "inbetween_drawings")
+        result = mutation(() =>
+          inbetweenDrawings(episode, {
+            sceneId: c.sceneId,
+            instanceId: c.instanceId,
+            step: c.step,
+            arc: c.arc,
+          }),
+        );
+      else if (c.action === "check_scale" || c.action === "check_model")
+        result = reportMotion(episode, { sceneId: c.sceneId, instanceId: c.instanceId });
+      else if (c.action === "lipsync_line")
+        result = mutation(() => {
+          if (c.lipsyncFallback)
+            throw new Error(`Rhubarb lip sync failed: ${c.lipsyncFallback}`);
+          const applied = applyLipsync(episode, {
+            sceneId: c.sceneId,
+            lineId: c.lineId,
+            cues: c.cues,
+          });
+          return { engine: applied.engine, cueCount: applied.shapes.length };
+        });
+      else if (c.action === "onion_skin") {
+        const at = Math.max(0, Math.min(duration(episode), Number(c.time) || 0));
+        const canvas = document.createElement("canvas");
+        canvas.width = 1280;
+        canvas.height = 720;
+        const onionResult = renderOnionSkin(canvas, episode, at, {
+          captions: false,
+          before: c.before ?? 2,
+          after: c.after ?? 2,
+          opacity: c.opacity ?? 0.45,
+          prevTint: c.prevTint || "#6eb6ff",
+          nextTint: c.nextTint || "#ff9d4a",
+          trails: c.trails !== false,
+        });
+        result = {
+          time: at,
+          frames: onionResult.frames,
+          mimeType: "image/png",
+          data: canvas.toDataURL("image/png").split(",")[1],
+          note: "Onion-skin composite. Past frames are blue, future frames are orange, trails mark head, hands and pupils.",
+        };
+      } else if (c.action === "motion_report")
+        result = reportMotion(episode, {
+          sceneId: c.sceneId,
+          instanceId: c.instanceId,
+        });
+      else if (c.action === "render_master") {
+        if (!bridge.exportMaster)
+          throw new Error(
+            "Offline master export is available from the desktop app and scripts/render-broadcast-demo.mjs.",
+          );
+        result = await bridge.exportMaster({
+          episode,
+          height: c.height || 1080,
+          fps: c.fps || 24,
+          captions: c.captions === true,
+          title: episode.title,
+        });
       } else if (c.action === "export_episode") {
         if (busy || exporting) throw new Error("Studio is busy.");
         captioned = c.captions === true;
@@ -1703,7 +1846,7 @@ examplesButton.onclick = () => {
   if (busy || exporting) return;
   modal(
     "Example productions",
-    `<p>Load an editable production. Your current project remains available through Undo.</p><div class="modal-actions"><button id="exampleDragon" class="button">Dragon review cut</button><button id="exampleFamily" class="button primary">Quantumania family</button></div>`,
+    `<p>Load an editable production. Your current project remains available through Undo.</p><div class="modal-actions"><button id="exampleDragon" class="button">Dragon review cut</button><button id="exampleFamily" class="button primary">Dot, Teo and Gloam</button></div>`,
   );
   const open = (make) => {
     applyEdit(() => {
@@ -1717,5 +1860,5 @@ examplesButton.onclick = () => {
     $("studioNav").click();
   };
   $("exampleDragon").onclick = () => open(demoEpisode);
-  $("exampleFamily").onclick = () => open(familyShowcase);
+  $("exampleFamily").onclick = () => open(castShowcase);
 };

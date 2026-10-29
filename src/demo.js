@@ -193,9 +193,9 @@ const nova = {
     ),
   ],
 };
-const pip = {
-  id: "pip",
-  name: "Pip",
+const sprout = {
+  id: "sprout",
+  name: "Sprout",
   kind: "creature",
   description:
     "A small lime-green three-eyed creature with long antennae, a pink belly, and a spectacularly misplaced sense of confidence.",
@@ -475,7 +475,7 @@ export function demoEpisode() {
     genre: "Cosmic comedy",
     style:
       "Adult sci-fi cartoon. Clean black outlines, flat muted colors, eccentric alien anatomy, large expressive eyes, simple articulated limbs and painted desert backgrounds.",
-    assets: [nova, pip, toaster, exterior, diner],
+    assets: [nova, sprout, toaster, exterior, diner],
     scenes: [
       {
         id: "arrival",
@@ -490,7 +490,7 @@ export function demoEpisode() {
             { t: 0, x: 570 },
             { t: 5, x: 685 },
           ]),
-          actor("pip1", "pip", 890, 666, 0.87, "bounce", [
+          actor("pip1", "sprout", 890, 666, 0.87, "bounce", [
             { t: 0, x: 830 },
             { t: 5, x: 918 },
           ]),
@@ -505,7 +505,7 @@ export function demoEpisode() {
           },
           {
             id: "a2",
-            speaker: "pip",
+            speaker: "sprout",
             text: "Better. Their toaster can predict the future.",
             at: 7,
             duration: 4,
@@ -522,7 +522,7 @@ export function demoEpisode() {
         camera: { zoom: 1, x: 640, y: 360 },
         instances: [
           actor("nova2", "nova", 405, 687, 1),
-          actor("pip2", "pip", 877, 686, 1, "wave"),
+          actor("pip2", "sprout", 877, 686, 1, "wave"),
           actor("toast2", "toaster", 650, 487, 0.9, "float"),
         ],
         dialogue: [
@@ -552,7 +552,7 @@ export function demoEpisode() {
         camera: { zoom: 1.25, x: 650, y: 399, panX: -15, panY: 5 },
         instances: [
           actor("nova3", "nova", 385, 687, 1, "still"),
-          actor("pip3", "pip", 907, 686, 1, "bounce", [
+          actor("pip3", "sprout", 907, 686, 1, "bounce", [
             { t: 0, x: 907 },
             { t: 5, x: 835 },
           ]),
@@ -561,7 +561,7 @@ export function demoEpisode() {
         dialogue: [
           {
             id: "c1",
-            speaker: "pip",
+            speaker: "sprout",
             text: "Incredible. How does it know?",
             at: 1,
             duration: 3,
@@ -588,7 +588,7 @@ export function demoEpisode() {
             { t: 0, x: 689 },
             { t: 11, x: 1040 },
           ]),
-          actor("pip4", "pip", 870, 666, 0.87, "walk", [
+          actor("pip4", "sprout", 870, 666, 0.87, "walk", [
             { t: 0, x: 870 },
             { t: 11, x: 1210 },
           ]),
@@ -603,7 +603,7 @@ export function demoEpisode() {
           },
           {
             id: "d2",
-            speaker: "pip",
+            speaker: "sprout",
             text: "Their microwave only predicts the past.",
             at: 6,
             duration: 4,
