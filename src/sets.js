@@ -1,5 +1,5 @@
 import { validateAsset } from "./model.js";
-import { garagePlate, kitchenPlate, marketPlate } from "./plates.js";
+import { garagePlate, kitchenLowPlate, kitchenPlate, marketPlate } from "./plates.js";
 
 export const SET_CATALOG = [
   {
@@ -23,12 +23,20 @@ export const SET_CATALOG = [
     description:
       "A modest kitchen. Sage cabinets, a window over the sink, a round table, and one teal spiral fruit. Original.",
   },
+  {
+    id: "suburb_kitchen_low",
+    name: "Dot's kitchen, low",
+    kind: "environment",
+    description:
+      "The same kitchen from a low eye height, so the ceiling and cabinet undersides reconverge.",
+  },
 ];
 
 const PLATES = {
   coil_shed: garagePlate,
   alien_market: marketPlate,
   suburb_kitchen: kitchenPlate,
+  suburb_kitchen_low: kitchenLowPlate,
 };
 
 export function buildSet(standardId, { id = standardId, name, description } = {}) {

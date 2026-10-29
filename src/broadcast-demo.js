@@ -23,6 +23,7 @@ export function kitchenEpisode({
   const teo = buildLead("teo", { id: "teo" });
   const gloam = buildLead("gloam", { id: "gloam" });
   const kitchen = buildSet("suburb_kitchen", { id: "dot_kitchen" });
+  const kitchenLow = buildSet("suburb_kitchen_low", { id: "dot_kitchen_low" });
   const dotDur = durations.dot ?? 5.2;
   const teoDur = durations.teo ?? 4.2;
   const gloamDur = durations.gloam ?? 3.4;
@@ -38,7 +39,7 @@ export function kitchenEpisode({
     genre: "Adult animated sitcom",
     style:
       "Original adult sitcom. Flat colour, one hard shadow, ink contours on characters and darkened local lines on the set. No boil.",
-    assets: [kitchen, dot, teo, gloam],
+    assets: [kitchen, kitchenLow, dot, teo, gloam],
     scenes: [
       {
         id: "kitchen",
@@ -49,9 +50,9 @@ export function kitchenEpisode({
         environment: "dot_kitchen",
         palette: "kitchen_day",
         lightAngleDeg: 135,
-        horizon: 0.72,
-        floorY: 710,
-        vanishX: 620,
+        horizon: 248 / 720,
+        floorY: 706,
+        vanishX: 640,
         layout: "kitchen",
         contactShadow: "#898d73",
         camera: { x: 640, y: 360, zoom: 1, zoomEnd: 1 },
@@ -89,13 +90,12 @@ export function kitchenEpisode({
             view: "threeQuarter",
             timing: "twos",
             drawingKeys: performance("dot", [
-              { t: 0, view: "threeQuarter", facing: 1, depth: 0.2, groundX: 160, wx: 118, wz: 168, handL: "grip", prop: "tablet", weight: -0.25, lShoulder: -18, lElbow: -36, rShoulder: 8, plantL: 1, plantR: 1 },
-              { t: 3.1, view: "threeQuarter", facing: 1, depth: 0.18, groundX: 150, wx: 122, wz: 166, handL: "grip", prop: "tablet", weight: 0.3, lean: -3, squash: 0.98, plantL: 1, plantR: 1 },
-              { t: teoAt - 0.06, view: "threeQuarter", facing: 1, depth: 0.18, wx: 120, wz: 168, handL: "grip", prop: "tablet", weight: 0.05, plantL: 1, plantR: 1 },
-              { t: teoAt, view: "back", facing: 1, depth: 0.08, wx: 168, wz: 108, handL: "grip", prop: "tablet", weight: 0, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur, view: "back", facing: 1, depth: 0.08, wx: 168, wz: 108, handL: "grip", prop: "tablet", lean: 2, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 0.08, view: "threeQuarter", facing: 1, depth: 0.18, wx: 124, wz: 170, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
-              { t: duration - 0.2, view: "threeQuarter", facing: 1, depth: 0.18, wx: 126, wz: 168, handL: "grip", prop: "tablet", weight: -0.1, plantL: 1, plantR: 1 },
+              { t: 0, view: "threeQuarter", facing: 1, depth: 0.16, groundX: 220, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
+              { t: 3.1, view: "threeQuarter", facing: 1, depth: 0.16, groundX: 220, handL: "grip", prop: "tablet", weight: 0.2, plantL: 1, plantR: 1 },
+              { t: teoAt, view: "back", facing: 1, depth: 0.15, groundX: 240, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur, view: "back", facing: 1, depth: 0.15, groundX: 240, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur + 0.2, view: "threeQuarter", facing: 1, depth: 0.16, groundX: 230, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
+              { t: duration - 0.2, view: "threeQuarter", facing: 1, depth: 0.16, groundX: 230, handL: "grip", prop: "tablet", plantL: 1, plantR: 1 },
             ]),
             tracks: [],
           },
@@ -109,16 +109,16 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("teo", [
-              { t: 0, view: "profile", drawing: "contact", depth: 0.78, groundX: 860, lHip: 26, plantL: 0, plantR: 0 },
-              { t: 0.5, view: "profile", drawing: "down", depth: 0.62, groundX: 760, lHip: 8 },
-              { t: 1, view: "profile", drawing: "pass", depth: 0.48, groundX: 680, lHip: -6 },
-              { t: 1.5, view: "profile", drawing: "up", depth: 0.36, groundX: 640, lHip: 4 },
-              { t: 2, view: "profile", drawing: "contactR", depth: 0.28, groundX: 600, lHip: 22 },
-              { t: 2.7, view: "threeQuarter", drawing: "stand", depth: 0.24, groundX: 620, lHip: 2, plantL: 1, plantR: 1 },
-              { t: 4.2, view: "threeQuarter", drawing: "sit", depth: 0.24, groundX: 640, lHip: -74, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur * 0.5, view: "threeQuarter", drawing: "sit", depth: 0.24, groundX: 640, lHip: -70, plantL: 1, plantR: 1 },
-              { t: teoAt + teoDur + 0.8, view: "threeQuarter", drawing: "stand", depth: 0.26, groundX: 660, lHip: 3, plantL: 1, plantR: 1 },
-              { t: duration - 0.2, view: "threeQuarter", drawing: "stand", depth: 0.26, groundX: 660, lHip: 2, plantL: 1, plantR: 1 },
+              { t: 0, view: "profile", drawing: "contact", depth: 0.66, groundX: 980, lHip: 26, plantL: 0, plantR: 0 },
+              { t: 0.5, view: "profile", drawing: "down", depth: 0.52, groundX: 880, lHip: 8, plantL: 0, plantR: 0 },
+              { t: 1, view: "profile", drawing: "pass", depth: 0.4, groundX: 780, lHip: -6, plantL: 0, plantR: 0 },
+              { t: 1.5, view: "profile", drawing: "up", depth: 0.3, groundX: 700, lHip: 4, plantL: 0, plantR: 0 },
+              { t: 2.1, view: "profile", drawing: "contactR", depth: 0.24, groundX: 640, lHip: 22, plantL: 0, plantR: 0 },
+              { t: 2.7, view: "threeQuarter", drawing: "stand", depth: 0.22, groundX: 640, lHip: 2, plantL: 1, plantR: 1 },
+              { t: 4.2, view: "threeQuarter", drawing: "sit", depth: 0.22, groundX: 640, lHip: -74, plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur * 0.5, view: "threeQuarter", drawing: "sit", depth: 0.22, groundX: 640, lHip: -70, plantL: 1, plantR: 1 },
+              { t: teoAt + teoDur + 0.8, view: "threeQuarter", drawing: "stand", depth: 0.22, groundX: 660, lHip: 3, plantL: 1, plantR: 1 },
+              { t: duration - 0.2, view: "threeQuarter", drawing: "stand", depth: 0.22, groundX: 660, lHip: 2, plantL: 1, plantR: 1 },
             ]),
             tracks: [],
           },
@@ -132,10 +132,10 @@ export function kitchenEpisode({
             view: "front",
             timing: "twos",
             drawingKeys: performance("gloam", [
-              { t: 0, view: "front", facing: 1, depth: 0.24, groundX: 980, wx: 410, wz: 210, lean: 0, plantL: 1, plantR: 1 },
-              { t: gloamAt - 0.3, view: "front", facing: -1, depth: 0.22, wx: 404, wz: 198, lean: -2, headTilt: 2, plantL: 1, plantR: 1 },
-              { t: gloamAt + 0.4, view: "front", facing: -1, depth: 0.2, wx: 400, wz: 190, lean: 3, headTilt: -4, squash: 0.97, plantL: 1, plantR: 1 },
-              { t: duration - 0.2, view: "front", facing: -1, depth: 0.2, wx: 402, wz: 194, lean: 0, plantL: 1, plantR: 1 },
+              { t: 0, view: "front", facing: 1, depth: 0.15, groundX: 1060, plantL: 1, plantR: 1 },
+              { t: gloamAt - 0.3, view: "front", facing: -1, depth: 0.15, groundX: 1060, lean: -2, plantL: 1, plantR: 1 },
+              { t: gloamAt + 0.4, view: "front", facing: -1, depth: 0.15, groundX: 1060, lean: 2, plantL: 1, plantR: 1 },
+              { t: duration - 0.2, view: "front", facing: -1, depth: 0.15, groundX: 1060, plantL: 1, plantR: 1 },
             ]),
             tracks: [],
           },

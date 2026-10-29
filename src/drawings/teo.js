@@ -11,8 +11,6 @@ const OVERALL = "#66704A";
 const BUCKLE = "#B9A46A";
 const BOOT = "#7A5233";
 const SCLERA = "#F4F0E4";
-const WOOD = "#8B5E3C";
-const WOOD_LT = "#C48A52";
 
 const TOP = 56;
 const HH = 168;
@@ -527,22 +525,6 @@ function walk() {
 }
 
 function chairAndSit() {
-  const seatBackL = [250, 500];
-  const seatBackR = [430, 492];
-  const seatFrontL = [188, 590];
-  const seatFrontR = [512, 582];
-  const chair = [
-    ring("chairSeat", [
-      seatFrontL, [350, 598], seatFrontR, [470, 548], seatBackR, [340, 496], seatBackL, [214, 552],
-    ], WOOD_LT, "prop"),
-    ring("chairLegFL", [[196, 588], [214, 586], [176, 860], [156, 858]], WOOD, "prop"),
-    ring("chairLegFR", [[492, 580], [510, 576], [534, 860], [514, 862]], WOOD, "prop"),
-    ring("chairLegBL", [[258, 508], [274, 504], [246, 820], [230, 818]], WOOD, "prop"),
-    ring("chairLegBR", [[412, 500], [428, 496], [446, 824], [428, 826]], WOOD, "prop"),
-    ring("chairPostL", [[246, 500], [264, 496], [252, 300], [234, 306]], WOOD, "prop"),
-    ring("chairPostR", [[416, 494], [434, 490], [422, 292], [404, 298]], WOOD, "prop"),
-    ring("chairSlat", [[240, 360], [418, 348], [420, 370], [242, 382]], WOOD_LT, "prop"),
-  ];
   const body = [
     ring("thighL", [
       [318, 528], [286, 548], [272, 610], [268, 668], [318, 682], [346, 640], [352, 560],
@@ -585,7 +567,7 @@ function chairAndSit() {
     ring("noseBreak", [[392, 328], [404, 338], [388, 346]], "none", "interior", { open: true }),
     ring("mouth", [[360, 346], [378, 352], [390, 344]], "none", "mouth", { open: true, line: "mouth" }),
   ];
-  return sheet("threeQuarter", "sit", [...chair, ...body], [[200, 862], [530, 864]], 232, 366);
+  return sheet("threeQuarter", "sit", body, [[280, 886], [420, 888]], 232, 366);
 }
 
 function handSheet() {

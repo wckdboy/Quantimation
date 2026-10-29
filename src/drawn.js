@@ -3,6 +3,8 @@
 // Twos advance the drawing every second frame.
 import { constructCharacter } from "./construct.js";
 import { posedDrawing } from "./drawings.js";
+import { activeShot } from "./model.js";
+import { rigFor } from "./plates.js";
 
 const SUP = 2;
 
@@ -851,7 +853,7 @@ export function drawCharacter(characterId = "dot", pose = {}) {
     return {
       width: authored.width || 560,
       height: footY + 4,
-      shapes: authored.shapes.map((shape) => ({ ...shape, type: "path", strokeWidth: 0, seed: (shape.seed || 1) + normal.boil })),
+      shapes: authored.shapes.map((shape) => ({ ...shape, type: "path", strokeWidth: 0, opacity: 1, seed: (shape.seed || 1) + normal.boil })),
       metrics: {
         heads: MODELS[id].heads,
         measuredHeads: (footY - crown) / Math.max(24, chin - crown),
@@ -877,10 +879,10 @@ export function drawCharacter(characterId = "dot", pose = {}) {
   };
 }
 
-export function groundPlacement(scene = {}, pose = {}, pitch = 0) {
-  const horizon = (scene.horizon ?? 0.4) * 720 - pitch * 2.2;
-  const floorFront = scene.floorY ?? 690;
-  const vanishX = scene.vanishX ?? 640;
+export function groundPlacement(scene = {}, pose = {}, pitch = 0, rig = null) {
+  const horizon = (rig?.horizonY ?? (scene.horizon ?? 0.4) * 720) - pitch * 2.2;
+  const floorFront = rig?.floorY ?? scene.floorY ?? 690;
+  const vanishX = rig?.vanishX ?? scene.vanishX ?? 640;
   const depth = Math.max(0, Math.min(0.92, pose.depth ?? 0.3));
   const span = Math.max(40, floorFront - horizon);
   const y = horizon + span * (1 - depth);
@@ -902,7 +904,8 @@ export function scaleCheck(scene, { fps = 24 } = {}) {
     for (const time of times) {
       const pose = samplePose(actor.drawingKeys, time, { twos: actor.timing !== "ones", fps });
       const pitch = pose.pitch || 0;
-      const place = groundPlacement(scene, pose, pitch);
+      const shot = activeShot(scene, time);
+      const place = groundPlacement(scene, pose, pitch, rigFor(shot.camera?.perspective));
       if (pose.depth < 0 || pose.depth > 0.92) {
         flags.push({ code: "depth", instanceId: actor.id, t: time });
       }
@@ -933,6 +936,70 @@ export function scaleCheck(scene, { fps = 24 } = {}) {
     }
   }
   return { flags: flags.slice(0, 40), checked: times.length };
+}
+
+export function stagingCheck(scene, { fps = 24 } = {}) {
+  const flags = [];
+  const times = [0.15];
+  for (const shot of scene.shots || []) times.push(Math.min(scene.duration - 0.05, shot.at + 0.2));
+  const actors = (scene.instances || []).filter((actor) => MODELS[actor.assetId] && actor.drawingKeys?.length);
+  for (const time of times) {
+    const shot = activeShot(scene, time);
+    const rig = rigFor(shot.camera?.perspective);
+    const boxes = actors.map((actor) => {
+      const pose = samplePose(actor.drawingKeys, time, { twos: actor.timing !== "ones", fps });
+      const art = drawCharacter(actor.assetId, pose);
+      const place = groundPlacement(scene, pose, 0, rig);
+      const span = Math.max(40, art.metrics?.span || art.height);
+      const drawScale = place.scale * (MODELS[actor.assetId].world / span);
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (const shape of art.shapes) {
+        const nums = String(shape.path || "").match(/-?\d*\.?\d+/g);
+        if (!nums) continue;
+        for (let i = 0; i + 1 < nums.length; i += 2) {
+          const x = Number(nums[i]);
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+        }
+      }
+      const origin = art.width / 2;
+      return {
+        id: actor.id,
+        left: place.x + (minX - origin) * drawScale,
+        right: place.x + (maxX - origin) * drawScale,
+        top: place.y - span * drawScale,
+        bottom: place.y,
+      };
+    });
+    for (const box of boxes) {
+      if (box.left < 16) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "left", at: Math.round(box.left) });
+      if (box.right > 1264) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "right", at: Math.round(box.right) });
+      if (box.top < 4) flags.push({ code: "edge", instanceId: box.id, t: time, edge: "top", at: Math.round(box.top) });
+      if (box.bottom > 712 || box.bottom < rig.horizonY + 8) {
+        flags.push({ code: "floor", instanceId: box.id, t: time, foot: Math.round(box.bottom) });
+      }
+    }
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) {
+        const a = boxes[i];
+        const b = boxes[j];
+        const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (overlapX > 6 && overlapY > 20) {
+          flags.push({
+            code: "overlap",
+            instanceId: a.id,
+            other: b.id,
+            t: time,
+            overlapX: Math.round(overlapX),
+            overlapY: Math.round(overlapY),
+          });
+        }
+      }
+    }
+  }
+  return { flags, checked: times.length };
 }
 
 export function modelCheck(characterId, pose = {}) {

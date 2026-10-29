@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { drawCharacter, inbetweenKeys, modelCheck, samplePose } from "../src/drawn.js";
+import { createCanvas } from "@napi-rs/canvas";
+import { drawCharacter, inbetweenKeys, modelCheck, samplePose, scaleCheck, stagingCheck } from "../src/drawn.js";
 import { kitchenEpisode } from "../src/broadcast-demo.js";
 import { cameraRig, project } from "../src/layout.js";
 import { buildSet } from "../src/sets.js";
+import { renderFrame } from "../src/renderer.js";
 
 test("a drawn hand is one contour and a held drawing does not change on the next frame", () => {
   for (const id of ["dot", "teo", "gloam"]) {
@@ -64,6 +66,52 @@ test("Teo's model sheet is smooth Bézier keys that morph", () => {
   const mid = drawCharacter("teo", { view: "profile", drawing: "stand", drawingTo: "contact", drawU: 0.5 });
   assert.notEqual(mid.shapes.find((shape) => shape.id === "legF").path, profileStand.shapes.find((shape) => shape.id === "legF").path);
   assert.match(mid.shapes.find((shape) => shape.id === "legF").path, /C/);
+});
+
+test("a rendered character is one opaque drawing", () => {
+  const episode = kitchenEpisode();
+  const canvas = createCanvas(1280, 720);
+  for (const frame of [100, 300]) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 1280, 720);
+    renderFrame(canvas, episode, frame / 24, { ink: "broadcast", captions: false, actorsOnly: true });
+    const data = ctx.getImageData(0, 0, 1280, 720).data;
+    const alphaAt = (x, y) => data[(y * 1280 + x) * 4 + 3];
+    let ghosts = 0;
+    for (let y = 1; y < 719; y += 1) {
+      for (let x = 1; x < 1279; x += 1) {
+        const alpha = alphaAt(x, y);
+        if (alpha < 40 || alpha > 210) continue;
+        let band = 0;
+        let open = false;
+        for (let dy = -2; dy <= 2; dy += 1) {
+          for (let dx = -2; dx <= 2; dx += 1) {
+            const neighbor = alphaAt(x + dx, y + dy);
+            if (neighbor < 16) open = true;
+            if (Math.abs(dx) + Math.abs(dy) === 1 && neighbor >= 40 && neighbor <= 220) band += 1;
+          }
+        }
+        if (!open && band >= 3) ghosts += 1;
+      }
+    }
+    assert.ok(ghosts < 24, `frame ${frame} blends a second drawing (${ghosts} interior pixels)`);
+  }
+  const sit = drawCharacter("teo", { view: "threeQuarter", drawing: "sit" });
+  assert.equal(sit.shapes.some((shape) => String(shape.id).startsWith("chair")), false);
+});
+
+test("every shot keeps scale, spacing, and feet on the floor", () => {
+  const scene = kitchenEpisode().scenes[0];
+  const scale = scaleCheck(scene);
+  const staging = stagingCheck(scene);
+  assert.deepEqual(scale.flags, [], JSON.stringify(scale.flags));
+  assert.deepEqual(staging.flags, [], JSON.stringify(staging.flags));
+  assert.ok(scene.shots.some((shot) => shot.camera.perspective === "low"));
+  const low = buildSet("suburb_kitchen_low");
+  const eye = buildSet("suburb_kitchen");
+  assert.notEqual(JSON.stringify(low.shapes), JSON.stringify(eye.shapes));
+  assert.equal(JSON.stringify(low.shapes).includes("ellipse"), false);
+  assert.ok(JSON.stringify(eye.shapes).includes("#221D26"));
 });
 
 test("construction keeps inner lines, a real turn, and a low lens converges", () => {

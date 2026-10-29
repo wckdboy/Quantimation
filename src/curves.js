@@ -145,19 +145,22 @@ export function morphShape(from, to, u) {
   };
 }
 
+function opaque(drawing) {
+  return {
+    ...drawing,
+    shapes: (drawing.shapes || []).map((shape) => ({ ...shape, opacity: 1 })),
+  };
+}
+
 export function morphDrawings(from, to, u) {
   const byId = new Map(to.shapes.map((shape) => [shape.id, shape]));
+  const same = from.shapes.length === to.shapes.length && from.shapes.every((shape) => byId.has(shape.id));
+  if (!same) return opaque(u >= 0.999 ? to : from);
+  if (u <= 0.001) return opaque(from);
+  if (u >= 0.999) return opaque(to);
   const shapes = [];
   for (const shape of from.shapes) {
-    const other = byId.get(shape.id);
-    if (!other) {
-      shapes.push({ ...shape, opacity: 1 - u });
-      continue;
-    }
-    shapes.push(morphShape(shape, other, u));
-  }
-  for (const shape of to.shapes) {
-    if (!from.shapes.some((item) => item.id === shape.id)) shapes.push({ ...shape, opacity: u });
+    shapes.push({ ...morphShape(shape, byId.get(shape.id), u), opacity: 1 });
   }
   const feet = (from.feet || []).map((foot, i) => {
     const next = (to.feet || [])[i] || foot;

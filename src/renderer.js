@@ -11,6 +11,7 @@ import {
 import { onTwos, shakeOffset, smearVector, smoothstep } from "./timing.js";
 import { jointPositions, onionTimes, TRAIL_JOINTS, worldToCanvas } from "./onion.js";
 import { drawCharacter, groundPlacement, MODELS, samplePose } from "./drawn.js";
+import { rigFor } from "./plates.js";
 import { actorPlacement, cameraRig, projectSet } from "./layout.js";
 
 const rad = (n) => (n * Math.PI) / 180;
@@ -452,7 +453,10 @@ export function renderFrame(canvas, episode, time, options = {}) {
     -(lensCam ? 640 : c.x + (c.panX || 0) * ratio),
     -(lensCam ? 360 : c.y + (c.panY || 0) * ratio),
   );
-  const env = episode.assets.find((a) => a.id === s.environment);
+  const envId = c.perspective === "low" && episode.assets.some((a) => a.id === `${s.environment}_low`)
+    ? `${s.environment}_low`
+    : s.environment;
+  const env = episode.assets.find((a) => a.id === envId);
   const shiftX = c.x + (c.panX || 0) * ratio - 640;
   const shiftY = c.y + (c.panY || 0) * ratio - 360;
   const setQueue = lensCam && !options.actorsOnly
@@ -578,7 +582,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
       drawnArt = drawCharacter(p.assetId, pose);
       const place = lensCam
         ? actorPlacement(lensCam, pose, MODELS[p.assetId] || MODELS.dot, drawnArt.metrics)
-        : groundPlacement(s, pose, pitch);
+        : groundPlacement(s, pose, pitch, rigFor(c.perspective));
       drawX = place.x;
       drawY = place.y;
       const modelHeight = MODELS[p.assetId]?.world;
