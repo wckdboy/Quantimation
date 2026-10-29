@@ -104,11 +104,17 @@ function floorGrid(cam, x0, x1, z1, fillA, fillB) {
       const zb = (z1 * (row + 1)) / rows;
       const xa = x0 + ((x1 - x0) * col) / cols;
       const xb = x0 + ((x1 - x0) * (col + 1)) / cols;
+      const near = row / Math.max(1, rows - 1);
+      const dark = (hex) => {
+        const n = Number.parseInt(hex.slice(1), 16);
+        const f = (c) => Math.max(0, Math.min(255, Math.round(c - near * 38)));
+        return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+      };
       shapes.push(worldFace(
         cam,
         `tile${row}${col}`,
         [[xa, 0, za], [xb, 0, za], [xb, 0, zb], [xa, 0, zb]],
-        (row + col) % 2 ? fillB : fillA,
+        dark((row + col) % 2 ? fillB : fillA),
       ));
     }
   }
@@ -134,6 +140,9 @@ function kitchen(cam) {
     worldFace(cam, "backWall", [[-340, 270, 0], [340, 270, 0], [340, 0, 0], [-340, 0, 0]], wall, "bgFar"),
     worldFace(cam, "leftWall", [[-340, 270, 0], [-340, 270, 380], [-340, 0, 380], [-340, 0, 0]], "#D9C7A4", "bgFar"),
     worldFace(cam, "rightWall", [[340, 270, 380], [340, 270, 0], [340, 0, 0], [340, 0, 380]], "#D9C7A4", "bgFar"),
+    worldFace(cam, "ceilingLine", [[-340, 270, 1], [340, 270, 1]], "none", "bgFar", true),
+    worldFace(cam, "aoBack", [[-336, 7, 3], [336, 7, 3], [348, 0, 12], [-348, 0, 12]], "#B6A888", "bgFar"),
+    worldFace(cam, "aoLeft", [[-338, 8, 16], [-330, 8, 16], [-324, 0, 180], [-340, 0, 180]], "#B6A888", "bgFar"),
     worldFace(cam, "wallShade", [[-340, 260, 1], [-120, 260, 1], [-120, 0, 1], [-340, 0, 1]], "#D2C09A", "bgFar"),
     worldFace(cam, "window", [[-250, 214, 1], [-70, 214, 1], [-70, 118, 1], [-250, 118, 1]], sky),
     drawn(cam, "cloudA", [[-230, 200, 2], [-200, 208, 2], [-170, 198, 2], [-188, 188, 2], [-220, 190, 2]], "#F7FBFD", "bgFar"),
@@ -186,6 +195,10 @@ function kitchen(cam) {
     drawn(cam, "leafB", [[-228, 114, 40], [-214, 140, 44], [-206, 122, 46], [-222, 112, 42]], "#5E8A55", "prop"),
     drawn(cam, "leafC", [[-236, 116, 40], [-232, 142, 42], [-220, 132, 44]], "#2F6A40", "prop"),
     drawn(cam, "fruit", [[-62, 96, 50], [-48, 112, 52], [-34, 100, 56], [-46, 94, 52]], "#3E8F8A", "prop"),
+    drawn(cam, "board", [[-90, 94, 20], [-30, 94, 20], [-26, 98, 34], [-94, 98, 34]], "#E7D3A8", "prop"),
+    drawn(cam, "jar", [[140, 96, 28], [158, 100, 30], [154, 124, 34], [138, 118, 32]], "#E6EFEA", "prop"),
+    worldFace(cam, "picture", [[150, 250, 1], [210, 250, 1], [210, 200, 1], [150, 200, 1]], "#F3E7C8", "bgDetail"),
+    worldFace(cam, "pictureHill", [[156, 224, 2], [180, 208, 2], [204, 226, 2], [204, 236, 2], [156, 236, 2]], "#7E946C", "bgFar"),
     worldFace(cam, "fridge", [[220, 190, 8], [320, 190, 8], [320, 0, 8], [220, 0, 8]], fridge),
     worldFace(cam, "fridgeTop", [[220, 190, 0], [320, 190, 0], [320, 190, 8], [220, 190, 8]], "#D5D0C4"),
     worldFace(cam, "fridgeNote", [[240, 150, 9], [286, 150, 9], [286, 112, 9], [240, 112, 9]], "#F7F1DE", "bgDetail"),

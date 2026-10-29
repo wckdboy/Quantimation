@@ -606,7 +606,7 @@ export function renderFrame(canvas, episode, time, options = {}) {
       ctx.scale(1, 1 / Math.max(0.2, drawScale));
       ctx.fillStyle = s.contactShadow || "#898d73";
       ctx.beginPath();
-      ctx.ellipse(0, 3, 42, 7, 0, 0, Math.PI * 2);
+      ctx.ellipse(18, 7, 54, 9, -0.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

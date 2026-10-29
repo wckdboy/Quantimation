@@ -133,8 +133,10 @@ function frontStand() {
   return sheet("dot", "front", "stand", [...frontBody(), ...frontHead()], [[CX - 30, Y.sole], [CX + 36, Y.sole]], TOP, Y.chin);
 }
 
-function quarterStand() {
+function quarterPose(name, mode) {
   const c = 330;
+  const look = mode === "look" ? 12 : 0;
+  const gesture = mode === "gesture";
   const t = TOP;
   const s = Y.shoulder;
   const shapes = [
@@ -156,7 +158,7 @@ function quarterStand() {
     ring("shirt", [[c + 8, s + 4], [c + 28, s - 2], [c + 24, Y.waist - 20], [c + 4, Y.waist - 12]], SHIRT),
     ring("lapel", [[c + 10, s], [c + 22, Y.waist - 24], [c + 6, Y.waist - 16]], "none", "interior", { open: true }),
     ring("neck", [[c - 4, Y.chin - 2], [c + 28, Y.chin + 4], [c + 24, s + 8], [c - 8, s + 4]], SKIN),
-    sideHand("handB", c - 78, s + 150, "relaxed"),
+    sideHand("handB", gesture ? c - 36 : c - 78, gesture ? s + 64 : s + 150, gesture ? "open" : "relaxed"),
     ...tablet("pad", c + 28, s + 108, 46, 64),
     sideHand("handF", c + 22, s + 118, "grip"),
     ring("bob", [
@@ -165,16 +167,28 @@ function quarterStand() {
       [c + 18, t + 34], [c - 14, t + 30], [c - 44, t + 78], [c - 48, Y.chin - 12],
     ], HAIR, "contour", { role: "hair" }),
     ring("head", [
-      [c - 16, t + 6], [c + 28, t + 2], [c + 62, t + 36], [c + 70, t + 90],
-      [c + 74, Y.nose - 6], [c + 58, Y.nose + 14], [c + 36, Y.chin - 8], [c + 8, Y.chin + 4],
-      [c - 28, Y.chin - 6], [c - 48, t + 100], [c - 46, t + 40],
+      [c - 16, t + 6 + look], [c + 28, t + 2 + look], [c + 62, t + 36 + look], [c + 70, t + 90 + look],
+      [c + 74, Y.nose - 6 + look], [c + 58, Y.nose + 14 + look], [c + 36, Y.chin - 8 + look], [c + 8, Y.chin + 4 + look],
+      [c - 28, Y.chin - 6 + look], [c - 48, t + 100 + look], [c - 46, t + 40 + look],
     ], SKIN, "contour", { role: "head" }),
     ring("fringe", [[c - 20, t + 18], [c + 30, t + 10], [c + 64, t + 28], [c + 50, t + 50], [c + 10, t + 48], [c - 16, t + 42]], HAIR),
-    ...goggle("near", c + 40, Y.eye + 22, 13, 1, SKIN, 0.2),
+    ...goggle("near", c + 40, Y.eye + 22 + look, 13, 1, SKIN, 0.2),
     ring("nose", [[c + 62, Y.nose - 8], [c + 74, Y.nose], [c + 56, Y.nose + 10]], "none", "interior", { open: true }),
     ring("mouth", [[c + 24, Y.mouth], [c + 46, Y.mouth + 2], [c + 58, Y.mouth - 2]], "none", "mouth", { open: true, line: "mouth" }),
   ];
-  return sheet("dot", "threeQuarter", "stand", shapes, [[c - 20, Y.sole], [c + 30, Y.sole]], TOP, Y.chin);
+  return sheet("dot", "threeQuarter", name, shapes, [[c - 20, Y.sole], [c + 30, Y.sole]], TOP, Y.chin);
+}
+
+function quarterStand() {
+  return quarterPose("stand", "stand");
+}
+
+function quarterLook() {
+  return quarterPose("look", "look");
+}
+
+function quarterGesture() {
+  return quarterPose("gesture", "gesture");
 }
 
 function profileStand() {
@@ -244,4 +258,4 @@ function backStand() {
   ], [[c - 24, Y.sole], [c + 28, Y.sole]], TOP, Y.chin);
 }
 
-export const DOT_SHEET = [frontStand(), quarterStand(), profileStand(), backStand()];
+export const DOT_SHEET = [frontStand(), quarterStand(), quarterLook(), quarterGesture(), profileStand(), backStand()];

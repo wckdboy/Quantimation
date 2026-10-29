@@ -229,7 +229,7 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
       const screen = framePoint(foot[0], foot[1], shot, frame.width, frame.height);
       feet.push({ id: actor.id, x: foot[0], y: foot[1], sx: screen.x, sy: screen.y, drawing: pose.drawing || "stand" });
       if (inside(props.top, foot[0], foot[1])) flags.push(`${actor.id}-on-table`);
-      if ((pose.drawing || "stand") !== "sit" && inside(props.seat, foot[0], foot[1])) flags.push(`${actor.id}-on-chair`);
+      if (!String(pose.drawing || "stand").startsWith("sit") && inside(props.seat, foot[0], foot[1])) flags.push(`${actor.id}-on-chair`);
       if (foot[1] < rig.horizonY + 20) flags.push(`${actor.id}-above-floor`);
     }
     const table = bounds(props.top);
@@ -242,5 +242,38 @@ export function reviewEpisode(episode, { createCanvas, step = 12, fps = 24 } = {
     flags.push(...scanFrame(frame, feet));
     if (flags.length) failures.push({ frame: index, t: Math.round(t * 100) / 100, flags });
   }
+  const held = actingFlags(scene, fps);
+  if (held.length) failures.push({ frame: 0, t: 0, flags: held });
   return { checked: indexes.length, failures };
+}
+
+function poseStamp(pose) {
+  return [
+    pose.view,
+    pose.drawing || "stand",
+    Math.sign(Math.round(pose.lean || 0)),
+    Math.sign(Math.round(pose.headTilt || 0)),
+    (pose.blink || 0) > 0.5 ? "blink" : "open",
+  ].join("/");
+}
+
+function actingFlags(scene, fps) {
+  const flags = [];
+  const end = scene.duration;
+  for (const actor of scene.instances || []) {
+    if (!actor.drawingKeys?.length) continue;
+    const samples = [];
+    for (let t = 0; t <= end + 1e-6; t += 0.25) {
+      const pose = samplePose(actor.drawingKeys, Math.min(t, end), { twos: actor.timing !== "ones", fps });
+      samples.push({ t, stamp: poseStamp(pose) });
+    }
+    for (let t = 0; t <= end - 2 + 1e-6; t += 0.5) {
+      const seen = new Set(samples.filter((sample) => sample.t >= t - 1e-6 && sample.t <= t + 2 + 1e-6).map((sample) => sample.stamp));
+      if (seen.size < 2) {
+        flags.push(`${actor.id}-held@${t.toFixed(1)}`);
+        if (flags.length > 6) return flags;
+      }
+    }
+  }
+  return flags;
 }

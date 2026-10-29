@@ -13,7 +13,8 @@ const HH = 200;
 const CX = 320;
 const SOLE = TOP + 2.05 * HH;
 
-function front() {
+function front(name = "stand") {
+  const listen = name === "listen";
   const t = TOP;
   const head = [
     [CX, t + 4],
@@ -29,6 +30,11 @@ function front() {
     [CX - 86, t + 48],
     [CX - 48, t + 10],
   ];
+  if (listen) {
+    for (const point of head) {
+      point[0] += 8;
+    }
+  }
   const body = [
     [CX - 46, t + 186],
     [CX - 96, t + 250],
@@ -43,7 +49,7 @@ function front() {
   ];
   const eyeY = t + 108;
   const r = 28;
-  return sheet("gloam", "front", "stand", [
+  return sheet("gloam", "front", name, [
     ring("body", body, SKIN, "contour", { shadow: true }),
     ring("vest", [
       [CX - 28, t + 198],
@@ -67,22 +73,21 @@ function front() {
     ring("armL", [
       [CX - 70, t + 230], [CX - 108, t + 250], [CX - 118, t + 300], [CX - 96, t + 312], [CX - 78, t + 260], [CX - 52, t + 236],
     ], SKIN),
-    ring("armR", [
-      [CX + 70, t + 228], [CX + 110, t + 248], [CX + 116, t + 298], [CX + 94, t + 310], [CX + 76, t + 258], [CX + 50, t + 234],
-    ], SKIN),
+    ring("armR", listen
+      ? [[CX + 62, t + 200], [CX + 84, t + 150], [CX + 90, t + 112], [CX + 72, t + 104], [CX + 58, t + 156], [CX + 46, t + 206]]
+      : [[CX + 70, t + 228], [CX + 110, t + 248], [CX + 116, t + 298], [CX + 94, t + 310], [CX + 76, t + 258], [CX + 50, t + 234]], SKIN),
     ring("handL", [
       [CX - 112, t + 300], [CX - 128, t + 318], [CX - 122, t + 340], [CX - 104, t + 334], [CX - 108, t + 348],
       [CX - 92, t + 338], [CX - 90, t + 314], [CX - 100, t + 302],
     ], SKIN, "contour", { role: "hand" }),
-    ring("handR", [
-      [CX + 100, t + 298], [CX + 118, t + 316], [CX + 112, t + 338], [CX + 94, t + 332], [CX + 98, t + 346],
-      [CX + 82, t + 336], [CX + 80, t + 312], [CX + 90, t + 300],
-    ], SKIN, "contour", { role: "hand" }),
+    ring("handR", listen
+      ? [[CX + 78, t + 100], [CX + 96, t + 92], [CX + 98, t + 112], [CX + 82, t + 118], [CX + 86, t + 130], [CX + 70, t + 114]]
+      : [[CX + 100, t + 298], [CX + 118, t + 316], [CX + 112, t + 338], [CX + 94, t + 332], [CX + 98, t + 346], [CX + 82, t + 336], [CX + 80, t + 312], [CX + 90, t + 300]], SKIN, "contour", { role: "hand" }),
     ring("footL", [[CX - 48, SOLE - 16], [CX - 58, SOLE + 4], [CX - 16, SOLE + 2], [CX - 18, SOLE - 16]], SKIN_DK),
     ring("footR", [[CX + 18, SOLE - 16], [CX + 16, SOLE + 2], [CX + 58, SOLE + 4], [CX + 48, SOLE - 16]], SKIN_DK),
     ring("head", head, SKIN, "contour", { role: "head", shadow: true }),
-    ...goggle("far", CX - 30, eyeY, r, -2, SKIN, -0.55),
-    ...goggle("near", CX + 30, eyeY, r, 2, SKIN, -0.55),
+    ...goggle("far", CX - 30 + (listen ? 8 : 0), eyeY, r, -2, SKIN, -0.55),
+    ...goggle("near", CX + 30 + (listen ? 8 : 0), eyeY, r, 2, SKIN, -0.55),
     ring("mouth", [
       [CX - 18, t + 162], [CX, t + 174], [CX + 18, t + 162], [CX + 10, t + 168], [CX, t + 166], [CX - 10, t + 168],
     ], MOUTH, "mouth"),
@@ -144,4 +149,4 @@ function profile() {
   ], [[c + 16, SOLE]], TOP, t + 204);
 }
 
-export const GLOAM_SHEET = [front(), quarter(), profile()];
+export const GLOAM_SHEET = [front("stand"), front("listen"), quarter(), profile()];
