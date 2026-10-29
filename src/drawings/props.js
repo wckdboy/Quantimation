@@ -237,13 +237,13 @@ function plant(cam, x, z, y = 93) {
 }
 
 function lamp(cam, x, z) {
-  const parts = cylinder(cam, "lamp", { x, y: 112, z, rx: 9, rz: 6, h: 14, fill: "#E7D3A1" });
+  const parts = cylinder(cam, "lamp", { x, y: 118, z, rx: 14, rz: 9, h: 20, fill: "#E7D3A1" });
   parts.push(shape("lamp_cord", [
-    project(cam, x, 156, z - 2),
-    project(cam, x, 140, z),
-    project(cam, x, 126, z),
+    project(cam, x, 158, z - 2),
+    project(cam, x, 148, z),
+    project(cam, x, 138, z),
   ], "none", "interior", true));
-  parts.push(shape("lamp_glow", ellipse(cam, x, 110, z, 4, 2.4, 6), "#F6E7A2"));
+  parts.push(shape("lamp_glow", ellipse(cam, x, 116, z, 6, 3.2, 6), "#F6E7A2"));
   return parts;
 }
 
