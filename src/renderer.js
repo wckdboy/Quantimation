@@ -128,7 +128,12 @@ function paintBroadcast(ctx, shape, acting) {
     shape.line ||
     (acting.environment ? "bg" : (shape.strokeWidth ?? 0) >= 3 ? "contour" : "interior");
   const line = LINE_CLASSES[lineName];
-  const stroke = shape.stroke && shape.stroke !== "none" ? shape.stroke : null;
+  const inkLine = !acting.environment && ["contour", "eye", "mouth", "interior", "prop"].includes(lineName);
+  const stroke = inkLine
+    ? "#221D26"
+    : shape.stroke && shape.stroke !== "none"
+      ? shape.stroke
+      : null;
   if (!line?.px || !stroke || stroke === "transparent") return;
   const width = screenWidth(line.px, acting);
   const amp = (line.wobblePx || 0) / Math.max(0.05, (acting.k || 1) * (acting.canvasScale || 1.5));

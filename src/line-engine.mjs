@@ -85,7 +85,7 @@ export function strokeOutline(points, { width = 4, closed = false, taper = null,
 }
 function capArc(c, nrm, r) { const out = [], a0 = Math.atan2(nrm[1], nrm[0]); for (let k = 1; k < 6; k++) { const a = a0 - (Math.PI * k) / 6; out.push([c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r]); } return out; }
 export const LINE_CLASSES = {
-  contour: { px: 4, wobblePx: 0.7, taper: null, weightModulation: 0.15 },
+  contour: { px: 4, wobblePx: 0.55, taper: [0.72, 0.7], weightModulation: 0 },
   eye: { px: 3.5, wobblePx: 0.9, taper: null, weightModulation: 0.1 },
   prop: { px: 3.25, wobblePx: 0.6, taper: null, weightModulation: 0.1 },
   mouth: { px: 3, wobblePx: 0.4, taper: [0.5, 0.5], weightModulation: 0 },

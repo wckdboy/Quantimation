@@ -58,9 +58,10 @@ test("Teo's model sheet is smooth Bézier keys that morph", () => {
   assert.equal(front.metrics.handLoops, 2);
   assert.equal(profile.metrics.handLoops, 1);
   assert.notEqual(front.shapes.find((shape) => shape.role === "head").path, profile.shapes.find((shape) => shape.role === "head").path);
-  const mid = drawCharacter("teo", { view: "threeQuarter", drawing: "stand", drawingTo: "contactL", drawU: 0.5 });
-  assert.notEqual(mid.shapes.find((shape) => shape.id === "pantsF").path, quarter.shapes.find((shape) => shape.id === "pantsF").path);
-  assert.match(mid.shapes.find((shape) => shape.id === "pantsF").path, /C/);
+  const profileStand = drawCharacter("teo", { view: "profile", drawing: "stand" });
+  const mid = drawCharacter("teo", { view: "profile", drawing: "stand", drawingTo: "contact", drawU: 0.5 });
+  assert.notEqual(mid.shapes.find((shape) => shape.id === "legF").path, profileStand.shapes.find((shape) => shape.id === "legF").path);
+  assert.match(mid.shapes.find((shape) => shape.id === "legF").path, /C/);
 });
 
 test("construction keeps inner lines, a real turn, and a low lens converges", () => {

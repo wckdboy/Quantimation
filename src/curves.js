@@ -30,7 +30,13 @@ export function smoothOpen(points) {
   const p = dedupe(points);
   if (p.length < 2) throw new Error("An open drawing needs two points.");
   let d = `M${fmt(p[0][0])} ${fmt(p[0][1])}`;
-  if (p.length === 2) return `${d}L${fmt(p[1][0])} ${fmt(p[1][1])}`;
+  if (p.length === 2) {
+    const c1x = p[0][0] + (p[1][0] - p[0][0]) / 3;
+    const c1y = p[0][1] + (p[1][1] - p[0][1]) / 3;
+    const c2x = p[0][0] + (2 * (p[1][0] - p[0][0])) / 3;
+    const c2y = p[0][1] + (2 * (p[1][1] - p[0][1])) / 3;
+    return `${d}C${fmt(c1x)} ${fmt(c1y)} ${fmt(c2x)} ${fmt(c2y)} ${fmt(p[1][0])} ${fmt(p[1][1])}`;
+  }
   for (let i = 0; i < p.length - 1; i++) {
     const p0 = p[Math.max(0, i - 1)];
     const p1 = p[i];
